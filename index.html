@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="author" content="Eason Chen">
+  <meta name="email" content="admin@xuanimage.top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>澄序课程表-配置生成器</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#3b82f6',
+            secondary: '#64748b',
+            accent: '#10b981',
+            neutral: '#f1f5f9',
+            dark: '#1e293b'
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .step-active {
+        @apply bg-primary text-white border-primary;
+      }
+      .step-completed {
+        @apply bg-accent text-white border-accent;
+      }
+      .step-pending {
+        @apply bg-white text-secondary border-secondary;
+      }
+      .form-input-focus {
+        @apply focus:ring-2 focus:ring-primary/50 focus:border-primary focus:outline-none;
+      }
+      .card-hover {
+        @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+      }
+      .template-locked {
+        @apply border-dashed border-gray-400 bg-gray-50;
+      }
+      .no-course-message {
+        @apply text-gray-500 italic text-sm mt-2;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+
+  <!-- 公告弹窗 -->
+  <div id="announcementModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-lg max-w-2xl w-full mx-4 overflow-hidden transform transition-all duration-300 scale-100">
+      <!-- 弹窗头部 -->
+      <div class="bg-primary text-white px-6 py-4 flex justify-between items-center">
+        <h3 class="text-lg font-bold">📢 系统公告</h3>
+        <button id="closeAnnouncementBtn" class="text-white hover:text-gray-200 transition-colors">
+          <i class="fa fa-times text-xl"></i>
+        </button>
+      </div>
+      <!-- 弹窗内容（可自定义 HTML） -->
+      <div class="p-6 space-y-4">
+        <p class="text-gray-700">使用帮助</p>
+        <ul class="list-disc pl-5 text-gray-600 space-y-2">
+          <li>该页面为 <a href="https://www.waterflames.cn/">澄序课程表——课程腕上抬手看</a> 配置页面 V0.1.3-Beta </li>
+          <li>若遇到奇奇怪怪的问题，请点击「保存配置」后刷新页面，「加载配置」后即可重新配置</li>
+          <li>测试群：1042873150</li>
+        </ul>
+        <div class="pt-2 text-right">
+          <a href="https://github.com/cyx200902/">
+            <span class="text-sm text-gray-500" >Eason Chen</span><br>
+          </a>
+          <span class="text-sm text-gray-500" >25.8.30</span>
+        </div>
+      </div>
+      <!-- 弹窗底部 -->
+      <div class="bg-gray-50 px-6 py-4 flex justify-end">
+        <button id="confirmAnnouncementBtn" class="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg transition-all flex items-center">
+          <i class="fa fa-check mr-2"></i>我已知晓
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 顶部导航 -->
+  <header class="bg-white shadow-sm sticky top-0 z-40">
+    <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <i class="fa fa-calendar-check-o text-primary text-2xl"></i>
+        <h1 class="text-xl font-bold text-dark">澄序课程表配置生成器</h1>
+      </div>
+      <div class="flex items-center space-x-4">
+        <a href="https://astrobox.online/open?source=res&res=%E6%BE%84%E5%BA%8F%E8%AF%BE%E7%A8%8B%E8%A1%A8&provider=official" target="_blank" rel="noopener noreferrer">
+              <img height="40px" src="https://astrobox.online/goab/en/white.svg">
+        </a>
+        <button id="saveBtn" class="bg-accent hover:bg-accent/90 text-white px-4 py-2 rounded-lg transition-all flex items-center">
+          <i class="fa fa-save mr-2"></i>保存配置
+        </button>
+        <button id="loadBtn" class="bg-secondary hover:bg-secondary/90 text-white px-4 py-2 rounded-lg transition-all flex items-center">
+          <i class="fa fa-upload mr-2"></i>加载配置
+        </button>
+        <input type="file" id="fileInput" accept=".json" class="hidden">
+      </div>
+    </div>
+  </header>
+
+  <main class="container mx-auto px-4 py-8">
+    <!-- 步骤指示器 -->
+    <div class="mb-10">
+      <div class="flex flex-wrap items-center justify-between">
+        <div class="flex items-center w-full md:w-auto mb-4 md:mb-0">
+          <div id="step1Indicator" class="step-active w-10 h-10 rounded-full border flex items-center justify-center font-medium mr-4">1</div>
+          <div>
+            <h2 class="text-lg font-semibold text-dark">基础信息设置</h2>
+            <p class="text-sm text-gray-500">配置课程表的基本信息</p>
+          </div>
+        </div>
+        
+        <div class="hidden md:block flex-1 max-w-md mx-4 h-1 bg-gray-200 rounded-full">
+          <div id="progressBar" class="h-full bg-primary rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+        
+        <div class="flex items-center w-full md:w-auto mb-4 md:mb-0">
+          <div id="step2Indicator" class="step-pending w-10 h-10 rounded-full border flex items-center justify-center font-medium mr-4">2</div>
+          <div>
+            <h2 class="text-lg font-semibold text-dark">课程信息管理</h2>
+            <p class="text-sm text-gray-500">添加和编辑课程详情</p>
+          </div>
+        </div>
+        
+        <div class="hidden md:block flex-1 max-w-md mx-4 h-1 bg-gray-200 rounded-full">
+          <div id="progressBar2" class="h-full bg-primary rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+        
+        <div class="flex items-center w-full md:w-auto mb-4 md:mb-0">
+          <div id="step3Indicator" class="step-pending w-10 h-10 rounded-full border flex items-center justify-center font-medium mr-4">3</div>
+          <div>
+            <h2 class="text-lg font-semibold text-dark">时间表模板</h2>
+            <p class="text-sm text-gray-500">设置每日时间节点</p>
+          </div>
+        </div>
+        
+        <div class="hidden md:block flex-1 max-w-md mx-4 h-1 bg-gray-200 rounded-full">
+          <div id="progressBar3" class="h-full bg-primary rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+        
+        <div class="flex items-center w-full md:w-auto">
+          <div id="step4Indicator" class="step-pending w-10 h-10 rounded-full border flex items-center justify-center font-medium mr-4">4</div>
+          <div>
+            <h2 class="text-lg font-semibold text-dark">课程安排</h2>
+            <p class="text-sm text-gray-500">分配每日课程</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 步骤内容区域 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- 左侧表单区域 -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- 步骤1: 基础信息 -->
+        <div id="step1" class="bg-white rounded-xl shadow-sm p-6 transition-all">
+          <h3 class="text-xl font-bold mb-6 pb-2 border-b border-gray-100">课程表基础信息</h3>
+          
+          <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="dataStructureVersion">数据格式版本</label>
+                <input type="text" id="dataStructureVersion" value="1.1" 
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus cursor-not-allowed" disabled>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="name">课程表名称</label>
+                <input type="text" id="name" placeholder="例如：高二下学期课程表" 
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus">
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="createTime">创建时间</label>
+                <input type="text" id="createTime" placeholder="格式：YYMMDDHHmmss" 
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus">
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="updateTime">修改时间</label>
+                <input type="text" id="updateTime" placeholder="格式：YYMMDDHHmmss" 
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus">
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="courseStart">课程开始日期</label>
+                <input type="text" id="courseStart" placeholder="格式：YYMMDD" 
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus">
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="courseEnd">课程结束日期</label>
+                <input type="text" id="courseEnd" placeholder="格式：YYMMDD" 
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus">
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 步骤2: 课程信息 -->
+        <div id="step2" class="bg-white rounded-xl shadow-sm p-6 transition-all hidden">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold pb-2 border-b border-gray-100">课程信息管理</h3>
+            <button id="addCourseBtn" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-all flex items-center">
+              <i class="fa fa-plus mr-2"></i>添加课程
+            </button>
+          </div>
+          
+          <div id="coursesContainer" class="space-y-4">
+            <!-- 课程卡片会动态添加到这里 -->
+          </div>
+        </div>
+        
+        <!-- 步骤3: 时间表模板 -->
+        <div id="step3" class="bg-white rounded-xl shadow-sm p-6 transition-all hidden">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold pb-2 border-b border-gray-100">时间表模板管理</h3>
+            <button id="addTemplateBtn" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-all flex items-center">
+              <i class="fa fa-plus mr-2"></i>添加模板
+            </button>
+          </div>
+          
+          <div id="templatesContainer" class="space-y-8">
+            <!-- 锁定的无课程模板 -->
+            <div class="template-card bg-neutral rounded-lg p-4 card-hover template-locked">
+              <div class="flex justify-between items-start mb-4">
+                <div>
+                  <h4 class="font-medium">时间表模板 #1</h4>
+                  <p class="no-course-message">当日无课程模板（不可删除）</p>
+                </div>
+                <div class="flex space-x-2">
+                  <button class="add-time-node bg-accent hover:bg-accent/90 text-white px-3 py-1 rounded transition-all text-sm flex items-center opacity-50 cursor-not-allowed" disabled>
+                    <i class="fa fa-plus mr-1"></i>添加节点
+                  </button>
+                  <button class="delete-template text-red-500 hover:text-red-700 transition-colors opacity-50 cursor-not-allowed" disabled>
+                    <i class="fa fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+              
+              <div class="time-nodes space-y-3">
+                <div class="time-node bg-white rounded p-3 border border-gray-200">
+                  <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium">时间节点 #1</span>
+                    <button class="delete-time-node text-red-500 hover:text-red-700 transition-colors text-sm opacity-50 cursor-not-allowed" disabled>
+                      <i class="fa fa-times"></i>
+                    </button>
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">类型</label>
+                      <select class="time-type w-full px-3 py-2 border border-gray-300 rounded-lg form-input-focus" disabled>
+                        <option value="start" selected>开始 (start)</option>
+                        <option value="course">课程 (course)</option>
+                        <option value="interval">课间 (interval)</option>
+                        <option value="rest">休息 (rest)</option>
+                        <option value="end">结束 (end)</option>
+                      </select>
+                    </div>
+                    <div class="time-time hidden">
+                      <label class="block text-sm font-medium text-gray-700 mb-1">开始时间  时</label>
+                      <input type="number" min="0" max="23" class="time-hour w-full px-3 py-2 border border-gray-300 rounded-lg form-input-focus" placeholder="00">
+                    </div>
+                    <div class="time-time hidden">
+                      <label class="block text-sm font-medium text-gray-700 mb-1">分</label>
+                      <input type="number" min="0" max="59" class="time-minute w-full px-3 py-2 border border-gray-300 rounded-lg form-input-focus" placeholder="00">
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="time-node bg-white rounded p-3 border border-gray-200">
+                  <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium">时间节点 #2</span>
+                    <button class="delete-time-node text-red-500 hover:text-red-700 transition-colors text-sm opacity-50 cursor-not-allowed" disabled>
+                      <i class="fa fa-times"></i>
+                    </button>
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">类型</label>
+                      <select class="time-type w-full px-3 py-2 border border-gray-300 rounded-lg form-input-focus" disabled>
+                        <option value="start">开始 (start)</option>
+                        <option value="course">课程 (course)</option>
+                        <option value="interval">课间 (interval)</option>
+                        <option value="rest">休息 (rest)</option>
+                        <option value="end" selected>结束 (end)</option>
+                      </select>
+                    </div>
+                    <div class="time-time hidden">
+                      <label class="block text-sm font-medium text-gray-700 mb-1">开始时间  时</a></label>
+                      <input type="number" min="0" max="23" class="time-hour w-full px-3 py-2 border border-gray-300 rounded-lg form-input-focus" placeholder="00">
+                    </div>
+                    <div class="time-time hidden">
+                      <label class="block text-sm font-medium text-gray-700 mb-1">分</label>
+                      <input type="number" min="0" max="59" class="time-minute w-full px-3 py-2 border border-gray-300 rounded-lg form-input-focus" placeholder="00">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 步骤4: 课程安排 -->
+        <div id="step4" class="bg-white rounded-xl shadow-sm p-6 transition-all hidden">
+          <h3 class="text-xl font-bold mb-6 pb-2 border-b border-gray-100">课程安排</h3>
+          
+          <div id="scheduleContainer" class="space-y-6">
+            <!-- 每天的安排会动态添加到这里 -->
+            <!-- 周一到周日会通过JS自动生成 -->
+          </div>
+        </div>
+        
+        <!-- 导航按钮 -->
+        <div class="flex justify-between mt-8">
+          <button id="prevBtn" class="bg-secondary hover:bg-secondary/90 text-white px-6 py-2 rounded-lg transition-all flex items-center opacity-50 cursor-not-allowed">
+            <i class="fa fa-arrow-left mr-2"></i>上一步
+          </button>
+          <button id="nextBtn" class="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg transition-all flex items-center">
+            下一步<i class="fa fa-arrow-right ml-2"></i>
+          </button>
+        </div>
+      </div>
+      
+      <!-- 右侧JSON预览区域 -->
+      <div class="lg:col-span-1">
+        <div class="bg-white rounded-xl shadow-sm p-6 sticky top-24 z-30">
+          <h3 class="text-xl font-bold mb-4 pb-2 border-b border-gray-100">JSON配置预览</h3>
+          <div class="relative">
+            <button id="copyJsonBtn" class="absolute top-2 right-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm transition-all">
+              <i class="fa fa-copy mr-1"></i>复制
+            </button>
+            <pre id="jsonPreview" class="bg-gray-50 p-4 rounded-lg text-sm overflow-x-auto max-h-[600px] font-mono"></pre>
+          </div>
+          <div id="copyAlert" class="mt-2 text-sm text-accent hidden">
+            <i class="fa fa-check mr-1"></i>已复制到剪贴板
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-dark text-white py-6 mt-12">
+    <div class="container mx-auto px-4 text-center">
+      <p>澄序课程表配置生成器 &copy; 2025</p> 
+      <p class="flex items-center justify-center mt-2">
+      <a href="https://github.com/cyx200902/" target="_blank">
+        <img src="https://img.shields.io/badge/Eason%20Chen-black?logo=github" 
+             style="vertical-align: middle; margin: 0 auto;">
+      </a>
+    </p>
+    </div>
+  </footer>
+
+  <script>
+    // 当前步骤
+    let currentStep = 1;
+    const totalSteps = 4;
+    
+    // 获取当前项目开始时间作为默认时间
+    const now = new Date();
+    const defaultHour = now.getHours().toString().padStart(2, '0');
+    const defaultMinute = now.getMinutes().toString().padStart(2, '0');
+    
+    // 生成当前时间的默认格式 (YYMMDDHHmmss)
+    const getCurrentTimeString = () => {
+      const date = new Date();
+      const year = date.getFullYear().toString().slice(2);
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      const seconds = date.getSeconds().toString().padStart(2, '0');
+      return `${year}${month}${day}${hours}${minutes}${seconds}`;
+    };
+    
+    // 初始化数据结构
+    let courseData = {
+      basic: {
+        dataStructureVersion: "1.1",
+        name: "",
+        createTime: getCurrentTimeString(),
+        updateTime: getCurrentTimeString(),
+        courseStart: "",
+        courseEnd: ""
+      },
+      courses: [], // 初始化为空数组，不默认创建课程
+      timetableTemplate: [
+        // 空的无课程模板（索引0）
+        [
+          {"type": "start"},
+          {"type": "end"}
+        ]
+      ],
+      courseSchedule: [] // 将通过JS初始化周一至周日
+    };
+    
+    // 初始化周一至周日的课程安排（固定顺序）
+    const dayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    dayNames.forEach(() => {
+      courseData.courseSchedule.push({
+        timetableId: [0], // 默认使用无课程模板
+        timetableRepeatability: 1,
+        courseList: []
+      });
+    });
+
+    // DOM 元素
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    const step3 = document.getElementById('step3');
+    const step4 = document.getElementById('step4');
+    
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    
+    const jsonPreview = document.getElementById('jsonPreview');
+    const copyJsonBtn = document.getElementById('copyJsonBtn');
+    const copyAlert = document.getElementById('copyAlert');
+    
+    const saveBtn = document.getElementById('saveBtn');
+    const loadBtn = document.getElementById('loadBtn');
+    const fileInput = document.getElementById('fileInput');
+
+    // 步骤指示器
+    const stepIndicators = [
+      document.getElementById('step1Indicator'),
+      document.getElementById('step2Indicator'),
+      document.getElementById('step3Indicator'),
+      document.getElementById('step4Indicator')
+    ];
+    
+    // 进度条
+    const progressBars = [
+      document.getElementById('progressBar'),
+      document.getElementById('progressBar2'),
+      document.getElementById('progressBar3')
+    ];
+
+    // 初始化页面
+    function init() {
+      // 设置创建时间和修改时间的默认值
+      document.getElementById('createTime').value = courseData.basic.createTime;
+      document.getElementById('updateTime').value = courseData.basic.updateTime;
+      
+      updateStepUI();
+      updateJsonPreview();
+      setupEventListeners();
+      
+      // 初始化周一至周日的课程安排UI（固定顺序）
+      initWeekDaysSchedule();
+    }
+
+    // 设置事件监听器
+    function setupEventListeners() {
+      // 步骤导航
+      prevBtn.addEventListener('click', goToPrevStep);
+      nextBtn.addEventListener('click', goToNextStep);
+      
+      // 复制JSON
+      copyJsonBtn.addEventListener('click', copyJsonToClipboard);
+      
+      // 保存和加载配置
+      saveBtn.addEventListener('click', saveConfiguration);
+      loadBtn.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', loadConfiguration);
+      
+      // 基础信息输入变化
+      document.getElementById('dataStructureVersion').addEventListener('input', updateBasicInfo);
+      document.getElementById('name').addEventListener('input', updateBasicInfo);
+      document.getElementById('createTime').addEventListener('input', updateBasicInfo);
+      document.getElementById('updateTime').addEventListener('input', updateBasicInfo);
+      document.getElementById('courseStart').addEventListener('input', updateBasicInfo);
+      document.getElementById('courseEnd').addEventListener('input', updateBasicInfo);
+      
+      // 课程管理
+      document.getElementById('addCourseBtn').addEventListener('click', addCourse);
+      document.getElementById('coursesContainer').addEventListener('click', handleCourseActions);
+      document.getElementById('coursesContainer').addEventListener('input', updateCourseInfo);
+      
+      // 时间表模板管理
+      document.getElementById('addTemplateBtn').addEventListener('click', addTemplate);
+      document.getElementById('templatesContainer').addEventListener('click', handleTemplateActions);
+      document.getElementById('templatesContainer').addEventListener('change', updateTemplateInfo);
+      
+      // 课程安排管理
+      document.getElementById('scheduleContainer').addEventListener('change', handleScheduleChange);
+      document.getElementById('scheduleContainer').addEventListener('click', function(e) {
+        // 处理添加课程按钮点击
+        if (e.target.closest('.add-course-to-schedule')) {
+          const btn = e.target.closest('.add-course-to-schedule');
+          if (!btn.disabled) {
+            handleAddCourseToSchedule(e);
+          }
+          return;
+        }
+        
+        // 处理删除课程按钮点击
+        if (e.target.closest('.delete-course-item')) {
+          handleDeleteCourseFromSchedule(e);
+          return;
+        }
+      });
+      document.getElementById('scheduleContainer').addEventListener('input', updateScheduleInfo);
+    }
+
+    // 初始化周一至周日的课程安排UI（固定顺序）
+    function initWeekDaysSchedule() {
+      const scheduleContainer = document.getElementById('scheduleContainer');
+      scheduleContainer.innerHTML = '';
+      
+      // 严格按照周一至周日顺序添加
+      dayNames.forEach((dayName, index) => {
+        // 创建每一天的容器并保留在DOM中
+        const dayContainer = document.createElement('div');
+        dayContainer.id = `dayContainer-${index}`;
+        scheduleContainer.appendChild(dayContainer);
+        
+        // 渲染当天内容
+        renderDayContent(index, dayName);
+      });
+    }
+
+    // 渲染特定天的内容
+    function renderDayContent(dayIndex, dayName) {
+      const dayContainer = document.getElementById(`dayContainer-${dayIndex}`);
+      if (!dayContainer) return;
+      
+      const dayData = courseData.courseSchedule[dayIndex];
+      
+      // 生成时间表模板下拉选项
+      let timetableOptions = '';
+      courseData.timetableTemplate.forEach((_, i) => {
+        timetableOptions += `<option value="${i}" ${dayData.timetableId[0] === i ? 'selected' : ''}>模板 #${i + 1}</option>`;
+      });
+      
+      // 生成课程下拉选项
+      let courseOptions = '<option value="">选择课程</option>';
+      courseData.courses.forEach((course, i) => {
+        const courseName = course.courseName || `课程 #${i + 1}`;
+        courseOptions += `<option value="${i}">${courseName}</option>`;
+      });
+      
+      // 检查是否使用无课程模板
+      const isNoCourseTemplate = dayData.timetableId[0] === 0;
+      
+      dayContainer.innerHTML = `
+        <div class="day-card bg-neutral rounded-lg p-4 card-hover">
+          <div class="flex justify-between items-start mb-4">
+            <h4 class="font-medium">${dayName}</h4>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">时间表模板</label>
+              <select class="timetable-id w-full px-3 py-2 border border-gray-300 rounded-lg form-input-focus">
+                ${timetableOptions}
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">模板重复次数</label>
+              <input type="number" min="1" class="timetable-repeatability w-full px-3 py-2 border border-gray-300 rounded-lg form-input-focus" 
+                    value="${dayData.timetableRepeatability || 1}">
+            </div>
+          </div>
+          
+          <div class="mb-4">
+            <div class="flex justify-between items-center mb-3">
+              <h5 class="font-medium">课程列表</h5>
+              <button class="add-course-to-schedule bg-accent hover:bg-accent/90 text-white px-3 py-1 rounded transition-all text-sm flex items-center ${isNoCourseTemplate ? 'opacity-50 cursor-not-allowed' : ''}"
+                      ${isNoCourseTemplate ? 'disabled' : ''}>
+                <i class="fa fa-plus mr-1"></i>添加课程
+              </button>
+            </div>
+            
+            ${isNoCourseTemplate ? '<p class="no-course-message text-gray-500 italic mb-3">当日无课程</p>' : ''}
+            
+            <div class="course-list space-y-3" data-day-index="${dayIndex}">
+              ${dayData.courseList.map((courseItem, itemIndex) => `
+                <div class="course-item bg-white rounded p-3 border border-gray-200 flex flex-col md:flex-row gap-3">
+                  <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">课程</label>
+                    <select class="course-id w-full px-3 py-2 border border-gray-300 rounded-lg form-input-focus" ${isNoCourseTemplate ? 'disabled' : ''}>
+                      ${courseOptions}
+                    </select>
+                  </div>
+                  <div class="w-full md:w-32">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">重复次数</label>
+                    <input type="number" min="1" class="course-repeatability w-full px-3 py-2 border border-gray-300 rounded-lg form-input-focus" 
+                          value="${courseItem.courseRepeatability || 1}" ${isNoCourseTemplate ? 'disabled' : ''}>
+                  </div>
+                  <div class="flex items-end">
+                    <button class="delete-course-item text-red-500 hover:text-red-700 transition-colors p-2 ${isNoCourseTemplate ? 'opacity-50 cursor-not-allowed' : ''}"
+                            ${isNoCourseTemplate ? 'disabled' : ''}>
+                      <i class="fa fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // 设置已选择的课程
+      const courseItems = dayContainer.querySelectorAll('.course-item');
+      courseItems.forEach((item, itemIndex) => {
+        const courseId = dayData.courseList[itemIndex]?.courseId?.[0];
+        if (courseId !== undefined) {
+          const select = item.querySelector('.course-id');
+          select.value = courseId;
+        }
+      });
+    }
+
+    // 更新步骤UI
+    function updateStepUI() {
+      // 隐藏所有步骤
+      step1.classList.add('hidden');
+      step2.classList.add('hidden');
+      step3.classList.add('hidden');
+      step4.classList.add('hidden');
+      
+      // 显示当前步骤
+      switch(currentStep) {
+        case 1:
+          step1.classList.remove('hidden');
+          prevBtn.classList.add('opacity-50', 'cursor-not-allowed');
+          prevBtn.disabled = true;
+          nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          nextBtn.disabled = false;
+          break;
+        case 2:
+          step2.classList.remove('hidden');
+          prevBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          prevBtn.disabled = false;
+          nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          nextBtn.disabled = false;
+          break;
+        case 3:
+          step3.classList.remove('hidden');
+          prevBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          prevBtn.disabled = false;
+          nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          nextBtn.disabled = false;
+          break;
+        case 4:
+          step4.classList.remove('hidden');
+          prevBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          prevBtn.disabled = false;
+          nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+          nextBtn.disabled = true;
+          break;
+      }
+      
+      // 更新步骤指示器
+      stepIndicators.forEach((indicator, index) => {
+        indicator.classList.remove('step-active', 'step-completed', 'step-pending');
+        if (index + 1 < currentStep) {
+          indicator.classList.add('step-completed');
+        } else if (index + 1 === currentStep) {
+          indicator.classList.add('step-active');
+        } else {
+          indicator.classList.add('step-pending');
+        }
+      });
+      
+      // 更新进度条
+      progressBars.forEach((bar, index) => {
+        bar.style.width = (index + 1 < currentStep) ? '100%' : '0%';
+      });
+      
+      // 滚动到顶部
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 上一步
+    function goToPrevStep() {
+      if (currentStep > 1) {
+        currentStep--;
+        updateStepUI();
+        nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        nextBtn.disabled = false;
+      }
+    }
+
+    // 下一步
+    function goToNextStep() {
+      if (currentStep < totalSteps) {
+        // 当从步骤3到步骤4时，更新课程安排的下拉选项
+        if (currentStep === 3) {
+          updateAllScheduleDropdowns();
+        }
+        currentStep++;
+        updateStepUI();
+      }
+    }
+
+    // 更新JSON预览
+    function updateJsonPreview() {
+      jsonPreview.textContent = JSON.stringify(courseData, null, 2);
+    }
+
+    // 复制JSON到剪贴板
+    function copyJsonToClipboard() {
+      navigator.clipboard.writeText(jsonPreview.textContent).then(() => {
+        copyAlert.classList.remove('hidden');
+        setTimeout(() => {
+          copyAlert.classList.add('hidden');
+        }, 2000);
+      });
+    }
+
+    // 保存配置
+    function saveConfiguration() {
+      // 保存前更新修改时间
+      courseData.basic.updateTime = getCurrentTimeString();
+      document.getElementById('updateTime').value = courseData.basic.updateTime;
+      
+      const jsonStr = JSON.stringify(courseData, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = courseData.basic.name ? `${courseData.basic.name}.json` : 'courseData.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      updateJsonPreview();
+    }
+
+    // 加载配置
+    function loadConfiguration(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          
+          // 确保包含空的无课程模板
+          if (!data.timetableTemplate || data.timetableTemplate[0]?.length !== 2 || 
+              data.timetableTemplate[0][0].type !== "start" || 
+              data.timetableTemplate[0][1].type !== "end") {
+            data.timetableTemplate = [
+              [{"type": "start"}, {"type": "end"}]
+            ].concat(data.timetableTemplate || []);
+          }
+          
+          // 确保有7天的课程安排，按周一至周日顺序
+          if (!data.courseSchedule || data.courseSchedule.length !== 7) {
+            const newSchedule = [];
+            dayNames.forEach((_, i) => {
+              newSchedule.push(data.courseSchedule?.[i] || {
+                timetableId: [0],
+                timetableRepeatability: 1,
+                courseList: []
+              });
+            });
+            data.courseSchedule = newSchedule;
+          }
+          
+          // 确保创建时间和修改时间存在
+          if (!data.basic.createTime) data.basic.createTime = getCurrentTimeString();
+          if (!data.basic.updateTime) data.basic.updateTime = getCurrentTimeString();
+          
+          courseData = data;
+          updateFormFromData();
+          updateJsonPreview();
+        } catch (error) {
+          alert('加载配置失败，请确保文件是有效的JSON格式');
+          console.error(error);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // 从数据更新表单
+    function updateFormFromData() {
+      // 更新基础信息
+      document.getElementById('dataStructureVersion').value = courseData.basic.dataStructureVersion || '1.1';
+      document.getElementById('name').value = courseData.basic.name || '';
+      document.getElementById('createTime').value = courseData.basic.createTime || '';
+      document.getElementById('updateTime').value = courseData.basic.updateTime || '';
+      document.getElementById('courseStart').value = courseData.basic.courseStart || '';
+      document.getElementById('courseEnd').value = courseData.basic.courseEnd || '';
+      
+      // 更新课程列表
+      const coursesContainer = document.getElementById('coursesContainer');
+      coursesContainer.innerHTML = '';
+      courseData.courses.forEach((course, index) => {
+        addCourseToDOM(course, index);
+      });
+      
+      // 更新时间表模板（保留第一个无课程模板）
+      const templatesContainer = document.getElementById('templatesContainer');
+      // 保留第一个无课程模板
+      const firstTemplate = templatesContainer.querySelector('.template-card');
+      templatesContainer.innerHTML = '';
+      templatesContainer.appendChild(firstTemplate);
+      
+      // 添加其他模板（从索引1开始）
+      for (let i = 1; i < courseData.timetableTemplate.length; i++) {
+        addTemplateToDOM(courseData.timetableTemplate[i], i);
+      }
+      
+      // 更新课程安排（按周一至周日顺序）
+      dayNames.forEach((dayName, index) => {
+        renderDayContent(index, dayName);
+      });
+      
+      // 更新课程ID显示
+      updateCourseIdDisplay();
+    }
+
+    // 更新基础信息
+    function updateBasicInfo() {
+      courseData.basic.dataStructureVersion = document.getElementById('dataStructureVersion').value;
+      courseData.basic.name = document.getElementById('name').value;
+      courseData.basic.createTime = document.getElementById('createTime').value;
+      courseData.basic.updateTime = document.getElementById('updateTime').value;
+      courseData.basic.courseStart = document.getElementById('courseStart').value;
+      courseData.basic.courseEnd = document.getElementById('courseEnd').value;
+      
+      updateJsonPreview();
+    }
+
+    // 添加课程
+    function addCourse() {
+      const newCourse = {
+        courseName: "",
+        teacher: "",
+        classroom: ""
+      };
+      
+      courseData.courses.push(newCourse);
+      addCourseToDOM(newCourse, courseData.courses.length - 1);
+      updateJsonPreview();
+    }
+
+    // 添加课程到DOM
+    function addCourseToDOM(course, index) {
+      const coursesContainer = document.getElementById('coursesContainer');
+      
+      const courseCard = document.createElement('div');
+      courseCard.className = 'course-card bg-neutral rounded-lg p-4 card-hover';
+      courseCard.dataset.index = index;
+      
+      courseCard.innerHTML = `
+        <div class="flex justify-between items-start mb-3">
+          <h4 class="font-medium">课程 #${index + 1}</h4>
+          <button class="delete-course text-red-500 hover:text-red-700 transition-colors">
+            <i class="fa fa-trash"></i>
+          </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">课程名称</label>
+            <input type="text" class="course-name w-full px-3 py-2 border border-gray-300 rounded-lg form-input-focus" 
+                  placeholder="例如：语文" value="${course.courseName || ''}">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">教师</label>
+            <input type="text" class="course-teacher w-full px-3 py-2 border border-gray-300 rounded-lg form-input-focus" 
+                  placeholder="例如：张老师" value="${course.teacher || ''}">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">教室</label>
+            <input type="text" class="course-classroom w-full px-3 py-2 border border-gray-300 rounded-lg form-input-focus" 
+                  placeholder="例如：本班" value="${course.classroom || ''}">
+          </div>
+        </div>
+      `;
+      
+      coursesContainer.appendChild(courseCard);
+    }
+
+    // 处理课程相关操作
+    function handleCourseActions(e) {
+      if (e.target.closest('.delete-course')) {
+        const courseCard = e.target.closest('.course-card');
+        const index = parseInt(courseCard.dataset.index);
+        
+        // 移除数据
+        courseData.courses.splice(index, 1);
+        
+        // 重新渲染课程列表
+        const coursesContainer = document.getElementById('coursesContainer');
+        coursesContainer.innerHTML = '';
+        courseData.courses.forEach((course, i) => {
+          addCourseToDOM(course, i);
+        });
+        
+        // 更新课程ID显示和所有相关下拉菜单
+        updateCourseIdDisplay();
+        updateAllCourseDropdowns();
+        updateJsonPreview();
+      }
+    }
+
+    // 更新课程信息
+    function updateCourseInfo(e) {
+      if (e.target.classList.contains('course-name') || 
+          e.target.classList.contains('course-teacher') || 
+          e.target.classList.contains('course-classroom')) {
+          
+        const courseCard = e.target.closest('.course-card');
+        const index = parseInt(courseCard.dataset.index);
+        
+        courseData.courses[index].courseName = courseCard.querySelector('.course-name').value;
+        courseData.courses[index].teacher = courseCard.querySelector('.course-teacher').value;
+        courseData.courses[index].classroom = courseCard.querySelector('.course-classroom').value;
+        
+        // 更新课程ID显示和所有相关下拉菜单
+        updateCourseIdDisplay();
+        updateAllCourseDropdowns();
+        updateJsonPreview();
+      }
+    }
+
+    // 添加时间表模板
+    function addTemplate() {
+      const newTemplate = [
+        {
+          type: "start"
+        },
+        {
+          type: "end",
+          timeHour: defaultHour,
+          timeMinute: defaultMinute
+        }
+      ];
+      
+      courseData.timetableTemplate.push(newTemplate);
+      addTemplateToDOM(newTemplate, courseData.timetableTemplate.length - 1);
+      
+      // 更新所有时间表下拉菜单
+      updateAllScheduleDropdowns();
+      updateJsonPreview();
+    }
+
+    // 添加时间表模板到DOM
+    function addTemplateToDOM(template, index) {
+      const templatesContainer = document.getElementById('templatesContainer');
+      
+      const templateCard = document.createElement('div');
+      templateCard.className = 'template-card bg-neutral rounded-lg p-4 card-hover';
+      templateCard.dataset.index = index;
+      
+      templateCard.innerHTML = `
+        <div class="flex justify-between items-start mb-4">
+          <h4 class="font-medium">时间表模板 #${index + 1}</h4>
+          <div class="flex space-x-2">
+            <button class="add-time-node bg-accent hover:bg-accent/90 text-white px-3 py-1 rounded transition-all text-sm flex items-center">
+              <i class="fa fa-plus mr-1"></i>添加节点
+            </button>
+            <button class="delete-template text-red-500 hover:text-red-700 transition-colors">
+              <i class="fa fa-trash"></i>
+            </button>
+          </div>
+        </div>
+        <div class="time-nodes space-y-3">
+        </div>
+      `;
+      
+      // 添加时间节点
+      const timeNodesContainer = templateCard.querySelector('.time-nodes');
+      template.forEach((node, nodeIndex) => {
+        const timeNode = createTimeNodeElement(node, nodeIndex);
+        timeNodesContainer.appendChild(timeNode);
+      });
+      
+      templatesContainer.appendChild(templateCard);
+    }
+
+    // 创建时间节点元素
+    function createTimeNodeElement(node, index) {
+      const timeNode = document.createElement('div');
+      timeNode.className = 'time-node bg-white rounded p-3 border border-gray-200';
+      timeNode.dataset.index = index;
+      
+      // 对于start类型，隐藏时间输入，其他类型显示
+      const showTime = node.type !== 'start';
+      
+      timeNode.innerHTML = `
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-sm font-medium">时间节点 #${index + 1}</span>
+          <button class="delete-time-node text-red-500 hover:text-red-700 transition-colors text-sm ${index === 0 && node.type === 'start' ? 'opacity-50 cursor-not-allowed' : ''}" 
+                  ${index === 0 && node.type === 'start' ? 'disabled' : ''}>
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">类型</label>
+            <select class="time-type w-full px-3 py-2 border border-gray-300 rounded-lg form-input-focus">
+              <option value="start" ${node.type === 'start' ? 'selected' : ''}>开始 (start)</option>
+              <option value="course" ${node.type === 'course' ? 'selected' : ''}>课程 (course)</option>
+              <option value="interval" ${node.type === 'interval' ? 'selected' : ''}>课间 (interval)</option>
+              <option value="rest" ${node.type === 'rest' ? 'selected' : ''}>休息 (rest)</option>
+              <option value="end" ${node.type === 'end' ? 'selected' : ''}>结束 (end)</option>
+            </select>
+          </div>
+          <div class="time-time ${showTime ? '' : 'hidden'}">
+            <label class="block text-sm font-medium text-gray-700 mb-1">开始时间  时</label>
+            <input type="number" min="0" max="23" class="time-hour w-full px-3 py-2 border border-gray-300 rounded-lg form-input-focus" 
+                  placeholder="00" value="${node.timeHour || ''}">
+          </div>
+          <div class="time-time ${showTime ? '' : 'hidden'}">
+            <label class="block text-sm font-medium text-gray-700 mb-1">分</label>
+            <input type="number" min="0" max="59" class="time-minute w-full px-3 py-2 border border-gray-300 rounded-lg form-input-focus" 
+                  placeholder="00" value="${node.timeMinute || ''}">
+          </div>
+        </div>
+      `;
+      
+      return timeNode;
+    }
+
+    // 处理模板相关操作
+    function handleTemplateActions(e) {
+      // 添加时间节点
+      if (e.target.closest('.add-time-node') && !e.target.closest('.template-locked')) {
+        const templateCard = e.target.closest('.template-card');
+        const templateIndex = parseInt(templateCard.dataset.index);
+        const timeNodesContainer = templateCard.querySelector('.time-nodes');
+        const lastNodeIndex = timeNodesContainer.children.length;
+        
+        // 创建新的时间节点
+        const newNode = {
+          type: "course",
+          timeHour: defaultHour,
+          timeMinute: defaultMinute
+        };
+        
+        // 添加到数据
+        courseData.timetableTemplate[templateIndex].splice(lastNodeIndex - 1, 0, newNode);
+        
+        // 更新DOM
+        timeNodesContainer.innerHTML = '';
+        courseData.timetableTemplate[templateIndex].forEach((node, nodeIndex) => {
+          const timeNode = createTimeNodeElement(node, nodeIndex);
+          timeNodesContainer.appendChild(timeNode);
+        });
+        
+        updateJsonPreview();
+      }
+      
+      // 删除时间节点
+      if (e.target.closest('.delete-time-node') && !e.target.closest('.template-locked')) {
+        const timeNode = e.target.closest('.time-node');
+        const templateCard = e.target.closest('.template-card');
+        const templateIndex = parseInt(templateCard.dataset.index);
+        const nodeIndex = parseInt(timeNode.dataset.index);
+        
+        // 确保至少保留开始和结束节点
+        if (courseData.timetableTemplate[templateIndex].length > 2) {
+          // 从数据中删除
+          courseData.timetableTemplate[templateIndex].splice(nodeIndex, 1);
+          
+          // 更新DOM
+          const timeNodesContainer = templateCard.querySelector('.time-nodes');
+          timeNodesContainer.innerHTML = '';
+          courseData.timetableTemplate[templateIndex].forEach((node, i) => {
+            const newTimeNode = createTimeNodeElement(node, i);
+            timeNodesContainer.appendChild(newTimeNode);
+          });
+          
+          updateJsonPreview();
+        }
+      }
+      
+      // 删除模板（仅允许删除非默认模板）
+      if (e.target.closest('.delete-template') && !e.target.closest('.template-locked')) {
+        const templateCard = e.target.closest('.template-card');
+        const templateIndex = parseInt(templateCard.dataset.index);
+        
+        // 从数据中删除
+        courseData.timetableTemplate.splice(templateIndex, 1);
+        
+        // 更新DOM
+        const templatesContainer = document.getElementById('templatesContainer');
+        // 保留第一个无课程模板
+        const firstTemplate = templatesContainer.querySelector('.template-card.template-locked');
+        templatesContainer.innerHTML = '';
+        templatesContainer.appendChild(firstTemplate);
+        
+        // 重新添加剩余模板
+        courseData.timetableTemplate.forEach((template, i) => {
+          if (i > 0) { // 跳过默认模板，它已经被保留
+            addTemplateToDOM(template, i);
+          }
+        });
+        
+        // 更新所有时间表下拉菜单
+        updateAllScheduleDropdowns();
+        updateJsonPreview();
+      }
+    }
+
+    // 更新模板信息
+    function updateTemplateInfo(e) {
+      // 处理时间节点类型变化
+      if (e.target.classList.contains('time-type')) {
+        const timeNode = e.target.closest('.time-node');
+        const templateCard = e.target.closest('.template-card');
+        const templateIndex = parseInt(templateCard.dataset.index);
+        const nodeIndex = parseInt(timeNode.dataset.index);
+        const type = e.target.value;
+        
+        // 更新数据
+        courseData.timetableTemplate[templateIndex][nodeIndex].type = type;
+        
+        // 显示或隐藏时间输入
+        const timeInputs = timeNode.querySelectorAll('.time-time');
+        if (type === 'start') {
+          timeInputs.forEach(input => input.classList.add('hidden'));
+          // 移除时间属性
+          delete courseData.timetableTemplate[templateIndex][nodeIndex].timeHour;
+          delete courseData.timetableTemplate[templateIndex][nodeIndex].timeMinute;
+        } else {
+          timeInputs.forEach(input => input.classList.remove('hidden'));
+          // 确保时间属性存在
+          if (!courseData.timetableTemplate[templateIndex][nodeIndex].timeHour) {
+            courseData.timetableTemplate[templateIndex][nodeIndex].timeHour = defaultHour;
+            timeNode.querySelector('.time-hour').value = defaultHour;
+          }
+          if (!courseData.timetableTemplate[templateIndex][nodeIndex].timeMinute) {
+            courseData.timetableTemplate[templateIndex][nodeIndex].timeMinute = defaultMinute;
+            timeNode.querySelector('.time-minute').value = defaultMinute;
+          }
+        }
+        
+        updateJsonPreview();
+      }
+      
+      // 处理小时变化
+      if (e.target.classList.contains('time-hour')) {
+        const timeNode = e.target.closest('.time-node');
+        const templateCard = e.target.closest('.template-card');
+        const templateIndex = parseInt(templateCard.dataset.index);
+        const nodeIndex = parseInt(timeNode.dataset.index);
+        const hour = e.target.value.padStart(2, '0');
+        
+        courseData.timetableTemplate[templateIndex][nodeIndex].timeHour = hour;
+        updateJsonPreview();
+      }
+      
+      // 处理分钟变化
+      if (e.target.classList.contains('time-minute')) {
+        const timeNode = e.target.closest('.time-node');
+        const templateCard = e.target.closest('.template-card');
+        const templateIndex = parseInt(templateCard.dataset.index);
+        const nodeIndex = parseInt(timeNode.dataset.index);
+        const minute = e.target.value.padStart(2, '0');
+        
+        courseData.timetableTemplate[templateIndex][nodeIndex].timeMinute = minute;
+        updateJsonPreview();
+      }
+    }
+
+    // 处理课程安排变化
+    function handleScheduleChange(e) {
+      // 处理时间表模板变化
+      if (e.target.classList.contains('timetable-id')) {
+        const dayCard = e.target.closest('.day-card');
+        const dayContainer = dayCard.parentElement;
+        const dayIndex = parseInt(dayContainer.id.split('-')[1]);
+        const timetableId = parseInt(e.target.value);
+        
+        courseData.courseSchedule[dayIndex].timetableId = [timetableId];
+        
+        // 只更新当前天的内容，不改变位置
+        renderDayContent(dayIndex, dayNames[dayIndex]);
+        
+        updateJsonPreview();
+      }
+      
+      // 处理课程选择变化
+      if (e.target.classList.contains('course-id')) {
+        const courseItem = e.target.closest('.course-item');
+        const courseList = e.target.closest('.course-list');
+        const dayIndex = parseInt(courseList.dataset.dayIndex);
+        const itemIndex = Array.from(courseList.children).indexOf(courseItem);
+        const courseId = e.target.value ? [parseInt(e.target.value)] : [];
+        
+        if (courseData.courseSchedule[dayIndex].courseList[itemIndex]) {
+          courseData.courseSchedule[dayIndex].courseList[itemIndex].courseId = courseId;
+        }
+        
+        updateJsonPreview();
+      }
+    }
+
+    // 处理添加课程到安排
+    function handleAddCourseToSchedule(e) {
+      // 获取当前天的索引
+      const addButton = e.target.closest('.add-course-to-schedule');
+      const dayCard = addButton.closest('.day-card');
+      const dayContainer = dayCard.parentElement;
+      const dayIndex = parseInt(dayContainer.id.split('-')[1]);
+      
+      // 添加到数据
+      const newCourseItem = {
+        courseId: [],
+        courseRepeatability: 1
+      };
+      courseData.courseSchedule[dayIndex].courseList.push(newCourseItem);
+      
+      // 只更新当前天的内容，不改变位置
+      renderDayContent(dayIndex, dayNames[dayIndex]);
+      
+      updateJsonPreview();
+    }
+
+    // 处理从安排中删除课程
+    function handleDeleteCourseFromSchedule(e) {
+      const courseItem = e.target.closest('.course-item');
+      const courseList = e.target.closest('.course-list');
+      const dayIndex = parseInt(courseList.dataset.dayIndex);
+      const itemIndex = Array.from(courseList.children).indexOf(courseItem);
+      
+      // 从数据中删除
+      courseData.courseSchedule[dayIndex].courseList.splice(itemIndex, 1);
+      
+      // 只更新当前天的内容，不改变位置
+      renderDayContent(dayIndex, dayNames[dayIndex]);
+      
+      updateJsonPreview();
+    }
+
+    // 更新课程安排信息
+    function updateScheduleInfo(e) {
+      // 处理模板重复次数变化
+      if (e.target.classList.contains('timetable-repeatability')) {
+        const dayCard = e.target.closest('.day-card');
+        const dayContainer = dayCard.parentElement;
+        const dayIndex = parseInt(dayContainer.id.split('-')[1]);
+        const repeatability = parseInt(e.target.value) || 1;
+        
+        courseData.courseSchedule[dayIndex].timetableRepeatability = repeatability;
+        updateJsonPreview();
+      }
+      
+      // 处理课程重复次数变化
+      if (e.target.classList.contains('course-repeatability')) {
+        const courseItem = e.target.closest('.course-item');
+        const courseList = e.target.closest('.course-list');
+        const dayIndex = parseInt(courseList.dataset.dayIndex);
+        const itemIndex = Array.from(courseList.children).indexOf(courseItem);
+        const repeatability = parseInt(e.target.value) || 1;
+        
+        if (courseData.courseSchedule[dayIndex].courseList[itemIndex]) {
+          courseData.courseSchedule[dayIndex].courseList[itemIndex].courseRepeatability = repeatability;
+        }
+        
+        updateJsonPreview();
+      }
+    }
+
+    // 更新所有课程下拉菜单
+    function updateAllCourseDropdowns() {
+      // 只更新内容，不改变顺序
+      dayNames.forEach((dayName, index) => {
+        renderDayContent(index, dayName);
+      });
+    }
+
+    // 更新所有时间表下拉菜单
+    function updateAllScheduleDropdowns() {
+      // 保持周一至周日的固定顺序，只更新内容
+      dayNames.forEach((dayName, index) => {
+        renderDayContent(index, dayName);
+      });
+    }
+
+    // 更新课程ID显示
+    function updateCourseIdDisplay() {
+      document.querySelectorAll('.course-card').forEach((card, index) => {
+        card.querySelector('h4').textContent = `课程 #${index + 1}`;
+        card.dataset.index = index;
+      });
+    }
+
+    // 初始化页面
+    //document.addEventListener('DOMContentLoaded', init);
+
+    // 公告弹窗控制逻辑
+    function initAnnouncementModal() {
+      const modal = document.getElementById('announcementModal');
+      const closeBtn = document.getElementById('closeAnnouncementBtn');
+      const confirmBtn = document.getElementById('confirmAnnouncementBtn');
+
+      // 关闭弹窗函数
+      function closeModal() {
+        modal.classList.add('opacity-0');
+        modal.querySelector('div').classList.add('scale-95');
+        setTimeout(() => {
+          modal.style.display = 'none';
+        }, 300);
+      }
+
+      // 点击关闭按钮关闭弹窗
+      closeBtn.addEventListener('click', closeModal);
+      // 点击确认按钮关闭弹窗
+      confirmBtn.addEventListener('click', closeModal);
+      // 点击弹窗外部背景关闭弹窗
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+      });
+    }
+
+    // 页面加载完成后自动显示公告弹窗
+    document.addEventListener('DOMContentLoaded', () => {
+      // 先初始化公告弹窗，再执行原页面初始化
+      initAnnouncementModal();
+      init(); // 原页面的初始化函数
+    });
+
+  </script>
+</body>
+</html>
