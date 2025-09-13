@@ -928,11 +928,10 @@
 
 
     /**
-     * 课表数据提取工具
+     * 课表数据提取工具 - 重构版
      * 功能：读取指定课表文件，提取课程表基本数据和课程列表，并生成标准格式的JSON文件
      * 说明：所有功能都在主函数中实现
-     * 重构说明：以"teacher"和"room"字段作为核心驱动要素，处理同一课程ID对应不同教师或教室的冲突场景
-     * 冲突处理：当同一课程ID对应不同教师或教室时，将另一冲突课程的ID值递增1，并确保该ID变更同步应用于后续所有相关课程的ID序列
+     * 重构说明：按照新的数据解析逻辑，将源数据按行分割为多个JSON对象
      */
 
     // ========== 引入模块 ==========
@@ -941,9 +940,8 @@
 
     // ========== 主处理函数 ==========
     /**
-     * 课表数据提取主函数
-     * 读取指定课表文件，提取课程表基本数据和课程列表，并生成标准格式的JSON文件
-     * 重构特点：以"teacher"和"room"字段作为核心驱动要素，处理同一课程ID对应不同教师或教室的冲突场景
+     * 课表数据提取主函数 - 重构版
+     * 读取指定课表文件，将源数据按行分割为多个JSON对象，并生成标准格式的JSON文件
      * @param {string} fileContentInput - 源文件内容
      * @returns {object} 提取后的课程数据对象
      */
@@ -951,83 +949,88 @@
 
       try {
         // 读取源文件内容
-        const fileContent = fileContentInput
-
-        // ========== 数据解析部分 ==========
+        const fileContent = fileContentInput;
+        
+        // ========== 数据解析部分 - 重构版 ==========
+        // 将文件内容按行分割
+        const lines = fileContent.trim().split('\n');
+        
+        // 解析每一行的JSON数据
+        const jsonData = lines.map(line => {
+          try {
+            return JSON.parse(line);
+          } catch (e) {
+            console.error(`解析JSON行失败: ${line}`);
+            return null;
+          }
+        }).filter(item => item !== null);
+        
         // 初始化变量存储解析后的数据
-        let data = {};
-        let courseDetailsArray = [];  // 存储id、room、teacher信息
-        let coursesInfoArray = [];    // 存储id、courseName信息
-        let tableNameFound = false;
-        let timeDataArray = [];       // 存储时间信息
-        let courseScheduleArray = []; // 存储课程安排信息
-
+        let basicInfo = {};          // 存储基本信息（来自2号元素）
+        let coursesInfoArray = [];   // 存储课程名称信息（来自3号元素）
+        let courseDetailsArray = []; // 存储教室和教师信息（来自4号元素）
+        let timeDataArray = [];      // 存储时间信息（来自1号元素）
+        let courseScheduleArray = []; // 存储课程安排信息（来自4号元素）
+        
         try {
-          // 使用正则表达式分割文件内容为多个JSON部分
-          const jsonParts = fileContent.split(/\s*(?<=[}\]])\s*(?=[{\[]|$)\s*/g);
-
-          // 处理每个JSON部分
-          for (const part of jsonParts) {
-            if (!part.trim()) continue; // 跳过空部分
-
-            try {
-              const json = JSON.parse(part);
-
-              if (typeof json === 'object' && json !== null) {
-                if (json.tableName) {
-                  // 找到包含tableName的对象
-                  data = json;
-                  tableNameFound = true;
-                } else if (Array.isArray(json)) {
-                  // 处理数组
-                  console.log('处理数组，数组长度:', json.length);
-                  console.log('数组第一个元素:', json[0]);
-
-                  if (json.some(item => item.courseName)) {
-                    // 包含courseName的数组
-                    coursesInfoArray = json;
-                    // 同时也作为课程详情数组，因为它也包含teacher和room信息
-                    courseDetailsArray = json;
-                    console.log('识别到课程信息数组（同时作为课程详情数组）');
-                  } else if (json.some(item => item.day !== undefined && item.startNode !== undefined && item.id !== undefined && item.startWeek !== undefined && item.endWeek !== undefined)) {
-                    // 包含课程安排信息的数组（包含day、startNode、id、startWeek和endWeek字段）
-                    courseScheduleArray = json;
-                    console.log('识别到课程安排数组');
-                  } else if (json.some(item => item.startTime && item.endTime && item.node !== undefined)) {
-                    // 包含startTime和endTime的数组（时间数据）
-                    timeDataArray = json;
-                    console.log('识别到时间数据数组');
-                  } else {
-                    console.log('未识别的数组类型:', json.slice(0, 2));
-                  }
-                }
-              }
-            } catch (e) {
-              // 忽略解析错误，继续处理下一个部分
-            }
+          // 检查数据长度是否足够
+          if (jsonData.length < 5) {
+            throw new Error('数据格式不正确，至少需要5个JSON对象');
           }
-
-          if (!tableNameFound) {
-            throw new Error('未找到包含tableName的对象');
+          
+          // ========== 提取各部分数据 ==========
+          // 1. 时间数据数组来自1号元素（索引1）
+          if (Array.isArray(jsonData[1])) {
+            timeDataArray = jsonData[1];
+            console.log('成功提取时间数据数组，长度:', timeDataArray.length);
+          } else {
+            throw new Error('1号元素不是有效的数组格式');
           }
-
+          
+          // 2. 基本信息（tableName、courseStart、courseEnd）来自2号元素（索引2）
+          if (typeof jsonData[2] === 'object' && jsonData[2] !== null) {
+            basicInfo = jsonData[2];
+            console.log('成功提取基本信息:', basicInfo.tableName);
+          } else {
+            throw new Error('2号元素不是有效的对象格式');
+          }
+          
+          // 3. 课程名称信息（courseName）来自3号元素（索引3）
+          if (Array.isArray(jsonData[3])) {
+            coursesInfoArray = jsonData[3];
+            console.log('成功提取课程名称信息数组，长度:', coursesInfoArray.length);
+          } else {
+            throw new Error('3号元素不是有效的数组格式');
+          }
+          
+          // 4. 教室和教师信息（room、teacher）来自4号元素（索引4）
+          // 5. 课程安排数组来自4号元素（索引4）
+          if (Array.isArray(jsonData[4])) {
+            courseDetailsArray = jsonData[4];
+            courseScheduleArray = jsonData[4];
+            console.log('成功提取课程详情和课程安排数组，长度:', courseDetailsArray.length);
+          } else {
+            throw new Error('4号元素不是有效的数组格式');
+          }
+          
           // 添加调试信息
           console.log(`解析到的数据：`);
-          console.log(`- 课程信息数组长度: ${coursesInfoArray.length}`);
-          console.log(`- 课程详情数组长度: ${courseDetailsArray.length}`);
           console.log(`- 时间数据数组长度: ${timeDataArray.length}`);
+          console.log(`- 基本信息: ${JSON.stringify(basicInfo)}`);
+          console.log(`- 课程名称信息数组长度: ${coursesInfoArray.length}`);
+          console.log(`- 课程详情数组长度: ${courseDetailsArray.length}`);
           console.log(`- 课程安排数组长度: ${courseScheduleArray.length}`);
-
+          
         } catch (parseError) {
           console.error('解析文件失败:', parseError);
           return;
         }
-
+        
         // 提取基本信息
-        const tableName = data.tableName || '';
-        const startDate = data.startDate || '';
-        const maxWeek = data.maxWeek || 0;
-
+        const tableName = basicInfo.tableName || '';
+        const startDate = basicInfo.startDate || '';
+        const maxWeek = basicInfo.maxWeek || 0;
+        
         // ========== 课程数据处理部分 ==========
         // 创建课程信息映射 (id -> courseName)
         const courseNameMap = new Map();
@@ -1036,7 +1039,7 @@
             courseNameMap.set(course.id, course.courseName);
           }
         });
-
+        
         // 创建课程详情映射 (id -> {teacher, room})
         const courseDetailsMap = new Map();
         courseDetailsArray.forEach(detail => {
@@ -1047,48 +1050,42 @@
             });
           }
         });
-
+        
         // 初始化更新后的课程安排数组
         let updatedCourseScheduleArray = [];
-
+        
         // 以"teacher"和"room"字段作为核心驱动要素，处理课程ID冲突
-        // 重构逻辑说明：
-        // 1. 为每个teacher+room组合分配唯一ID，确保同一教师和教室的组合始终使用相同的ID
-        // 2. 当检测到同一课程ID对应不同教师或教室时，为冲突的课程分配新的ID
-        // 3. 新ID从最小未使用的ID开始分配，确保ID序列的连续性
-        // 4. 记录ID映射关系，用于后续更新课程安排中的ID，确保数据一致性
-
         // 创建一个映射，用于存储teacher+room组合到课程ID的映射
         const teacherRoomToIdMap = new Map();
         // 存储已使用的ID，用于分配新ID
         const usedIds = new Set();
         // 存储ID映射关系，用于后续更新课程安排中的ID
         const idMapping = new Map();
-
+        
         // 首先收集所有已使用的ID
         coursesInfoArray.forEach(course => {
           if (course.id !== undefined) {
             usedIds.add(course.id);
           }
         });
-
+        
         // 处理课程详细信息，为每个teacher+room组合分配唯一ID
         const processedCourses = [];
-
+        
         // 首先处理课程安排数组，确保每个课程安排都有正确的ID映射
         updatedCourseScheduleArray = courseScheduleArray.map(schedule => {
           // 获取课程名称和详细信息
           const courseName = courseNameMap.get(schedule.id) || '';
           const courseDetail = courseDetailsMap.get(schedule.id) || { teacher: '', room: '' };
-
+          
           // 创建teacher+room组合的唯一标识
           const teacherRoomKey = `${courseDetail.teacher}_${courseDetail.room}`;
-
+          
           let courseId = schedule.id;
-
+          
           // 检查原始ID是否有效（非0且在课程信息数组中存在）
           const isValidOriginalId = schedule.id !== 0 && coursesInfoArray.some(course => course.id === schedule.id);
-
+          
           if (isValidOriginalId) {
             // 如果原始ID有效，找到该课程在coursesInfoArray中的索引作为courseId
             const courseIndex = coursesInfoArray.findIndex(course => course.id === schedule.id);
@@ -1107,7 +1104,7 @@
                   break;
                 }
               }
-
+              
               // 如果存在ID冲突，分配一个新的ID
               if (isIdConflict) {
                 // 找到最小的未使用ID
@@ -1118,17 +1115,17 @@
                 courseId = newId;
                 usedIds.add(courseId);
               }
-
+              
               // 存储teacher+room组合到ID的映射
               teacherRoomToIdMap.set(teacherRoomKey, courseId);
             }
           }
-
+          
           // 存储ID映射关系（原始ID -> 新ID）
           if (schedule.id !== courseId) {
             idMapping.set(schedule.id, courseId);
           }
-
+          
           // 添加处理后的课程
           if (!processedCourses.some(c => c.id === courseId && c.courseName === courseName)) {
             processedCourses.push({
@@ -1138,7 +1135,7 @@
               classroom: courseDetail.room
             });
           }
-
+          
           // 返回更新后的课程安排，保留原始课程名称信息
           return {
             ...schedule,
@@ -1146,7 +1143,7 @@
             courseName: courseName
           };
         });
-
+        
         // 去重（基于teacher+room组合已经确保了唯一性，这里主要是确保没有完全重复的条目）
         const uniqueCourses = [];
         const seenCourseIdentifiers = new Set();
@@ -1158,17 +1155,16 @@
             uniqueCourses.push(course);
           }
         });
-
+        
         // 先按ID排序
         uniqueCourses.sort((a, b) => a.id - b.id);
-
+        
         // 移除ID字段
-        const finalCourses = uniqueCourses.map(({ id, ...rest }) => rest);
-
+        const finalCourses = uniqueCourses.map(({id, ...rest}) => rest);
+        
         // 添加调试信息
         console.log(`更新后的课程安排数组长度: ${updatedCourseScheduleArray.length}`);
-        console.log(`更新后的课程安排数组内容: ${JSON.stringify(updatedCourseScheduleArray, null, 2)}`);
-
+        
         if (tableName && startDate && maxWeek) {
           // ========== 日期处理部分 ==========
           // 格式化日期为yyMMdd格式
@@ -1177,38 +1173,38 @@
           const month = parts[1].padStart(2, '0'); // 月份补零
           const day = parts[2].padStart(2, '0'); // 日期补零
           const courseStart = `${year}${month}${day}`;
-
+          
           // 计算日期加上指定周数后的日期
           const dateParts = startDate.split('-');
           const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
           date.setDate(date.getDate() + maxWeek * 7);
-
+          
           const endYear = date.getFullYear().toString().slice(2);
           const endMonth = (date.getMonth() + 1).toString().padStart(2, '0');
           const endDay = date.getDate().toString().padStart(2, '0');
-
+          
           const courseEnd = `${endYear}${endMonth}${endDay}`;
-
+          
           // ========== 时间表模板生成部分 ==========
           // 获取所有不同的day值，包括1-7天
           const uniqueDays = [...new Set(updatedCourseScheduleArray.map(item => item.day))].sort((a, b) => a - b);
-
+          
           let timetableTemplates = [];
           // 用于存储模板和其索引的映射
           const templateMap = new Map();
           // 存储每个day对应的模板索引
           const dayTemplateIndexMap = new Map();
-
+          
           // 为每个day生成timetableTemplate
           uniqueDays.forEach(day => {
             const dayTemplate = [{ type: 'start' }];
-
+            
             // 获取该day的所有课程安排，使用更新后的课程安排数组
             const dayCourses = updatedCourseScheduleArray.filter(item => item.day === day);
-
+            
             // 收集所有时间节点（包括course和interval）
             const timeNodes = [];
-
+            
             // 为每个课程安排生成时间节点
             dayCourses.forEach(course => {
               // 根据startNode获取对应的startTime
@@ -1216,12 +1212,12 @@
               if (timeItem && timeItem.startTime !== '00:00') {
                 const startTimeParts = timeItem.startTime.split(':');
                 // 检查是否已经存在相同时间的course节点
-                const existingCourseNode = timeNodes.find(node =>
-                  node.type === 'course' &&
-                  node.timeHour === startTimeParts[0] &&
+                const existingCourseNode = timeNodes.find(node => 
+                  node.type === 'course' && 
+                  node.timeHour === startTimeParts[0] && 
                   node.timeMinute === startTimeParts[1]
                 );
-
+                
                 // 总是添加course节点，即使时间相同
                 timeNodes.push({
                   type: 'course',
@@ -1229,19 +1225,19 @@
                   timeMinute: startTimeParts[1],
                   time: parseInt(startTimeParts[0]) * 60 + parseInt(startTimeParts[1]) // 转换为分钟数用于排序
                 });
-
+                
                 // 根据step确定结束时间点
                 const endNode = course.startNode + course.step - 1;
                 const endTimeItem = timeDataArray.find(item => item.node === endNode);
                 if (endTimeItem && endTimeItem.endTime !== '00:00') {
                   const endTimeParts = endTimeItem.endTime.split(':');
                   // 检查是否已经存在相同时间的interval节点
-                  const existingIntervalNode = timeNodes.find(node =>
-                    node.type === 'interval' &&
-                    node.timeHour === endTimeParts[0] &&
+                  const existingIntervalNode = timeNodes.find(node => 
+                    node.type === 'interval' && 
+                    node.timeHour === endTimeParts[0] && 
                     node.timeMinute === endTimeParts[1]
                   );
-
+                  
                   // 总是添加interval节点，即使时间相同
                   timeNodes.push({
                     type: 'interval',
@@ -1252,7 +1248,7 @@
                 }
               }
             });
-
+            
             // 按时间排序所有节点
             timeNodes.sort((a, b) => {
               if (a.time !== b.time) {
@@ -1268,7 +1264,7 @@
               // 如果类型相同，保持原有顺序
               return 0;
             });
-
+            
             // 当上一个"interval"节点与下一个"course"节点之间的时间差超过一小时时，就把该"interval"节点替换成"rest"节点
             for (let i = 0; i < timeNodes.length - 1; i++) {
               // 检查当前节点是否为interval类型，下一个节点是否为course类型
@@ -1282,14 +1278,14 @@
                 }
               }
             }
-
+            
             // 将排序后的节点添加到dayTemplate中
             timeNodes.forEach(node => {
               // 移除用于排序的time属性
               const { time, ...nodeWithoutTime } = node;
               dayTemplate.push(nodeWithoutTime);
             });
-
+            
             // 添加end节点
             if (dayTemplate.length > 1) {
               // 移除最后一个interval节点
@@ -1301,10 +1297,10 @@
                 timeMinute: lastInterval.timeMinute
               });
             }
-
+            
             // 将模板转换为字符串用于比较
             const templateStr = JSON.stringify(dayTemplate);
-
+            
             // 检查是否已存在相同的模板
             if (templateMap.has(templateStr)) {
               // 如果已存在，记录该day对应的模板索引
@@ -1317,38 +1313,33 @@
               dayTemplateIndexMap.set(day, newIndex);
             }
           });
-
+          
           // ========== 课程安排生成部分 ==========
           // 为一周中的每一天（1-7）生成courseSchedule条目
-          // 重构后的课程安排生成逻辑完全适配了ID调整机制，保持了数据的整体一致性
           let courseSchedule = [];
           // 处理一周中的所有天数（1-7），确保每天都有对应的条目
           for (let day = 1; day <= 7; day++) {
             // 使用更新后的课程安排数组，确保ID一致性
-            // 注意：这里使用的是已经更新过的ID，确保与课程列表中的ID一致
             const dayCourses = updatedCourseScheduleArray.filter(item => item.day === day);
-
+            
             // 判断当天是否有课程安排
             if (dayCourses.length > 0) {
               // 有课程安排的天数，正常处理
               // 先按照startNode对课程进行排序
               const sortedDayCourses = dayCourses.sort((a, b) => a.startNode - b.startNode);
-
+              
               // 创建courseList数组，保留同一天的所有课程
-              // 重构说明：使用更新后的ID确保与课程列表中的ID一致，维持数据一致性
               const courseList = sortedDayCourses.map(course => {
                 // 直接使用已经正确映射的course.id
-                // 这个ID已经在之前的处理中根据teacher+room组合进行了正确的映射
                 const courseId = course.id;
-
+                
                 return {
                   courseId: [courseId],
                   courseRepeatability: 1
                 };
               });
-
+              
               // 添加到courseSchedule，使用去重后的模板索引
-              // 重构说明：timetableId使用数组格式，支持多模板引用，提高数据结构灵活性
               courseSchedule.push({
                 timetableId: [dayTemplateIndexMap.get(day)],
                 timetableRepeatability: 1,
