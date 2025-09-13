@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
   <meta charset="UTF-8">
   <meta name="author" content="Eason Chen">
@@ -54,12 +55,168 @@
       }
     }
   </style>
+
+  <style>
+    /* 全屏遮罩样式 - 白色背景 */
+    .qq-mask {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #fff;
+      /* 全白色背景 */
+      z-index: 50;
+      /* 与现有弹窗相同层级 */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    /* 显示遮罩 */
+    .qq-mask.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* 提示弹窗样式 */
+    .qq-alert {
+      background: #fff;
+      width: 100%;
+      max-width: 420px;
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+      padding: 36px 24px;
+      text-align: center;
+      transform: scale(0.9);
+      transition: transform 0.3s ease;
+    }
+
+    .qq-mask.show .qq-alert {
+      transform: scale(1);
+    }
+
+    .qq-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 24px;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2312B7F5'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z'/%3E%3C/svg%3E") no-repeat center;
+      background-size: contain;
+    }
+
+    .qq-alert h2 {
+      font-size: 22px;
+      color: #333;
+      margin-bottom: 12px;
+    }
+
+    .qq-alert p {
+      font-size: 15px;
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 24px;
+      padding: 0 10px;
+    }
+
+    /* 按钮样式 */
+    .action-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 16px;
+    }
+
+    .action-btn {
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: none;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 140px;
+      justify-content: center;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-copy {
+      background-color: #4285f4;
+      color: #fff;
+    }
+
+    .btn-copy:hover {
+      background-color: #3367d6;
+    }
+
+    .btn-continue {
+      background-color: #f1f3f4;
+      color: #333;
+    }
+
+    .btn-continue:hover {
+      background-color: #e8eaed;
+    }
+
+    /* 正常内容区域 */
+    .normal-content {
+      text-align: center;
+      padding: 40px 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .normal-content h1 {
+      color: #333;
+      margin-bottom: 16px;
+    }
+
+    .normal-content p {
+      color: #666;
+      font-size: 16px;
+    }
+  </style>
 </head>
+
 <body class="bg-gray-50 min-h-screen font-sans">
+  <!-- QQ客户端提示遮罩 -->
+  <div class="qq-mask" id="qqMask">
+    <div class="qq-alert">
+      <div class="qq-icon"></div>
+      <h2>检测到您正在使用QQ内置浏览器</h2>
+      <p>为了获得更好的浏览体验和功能支持，建议您复制链接到其他浏览器打开</p>
+      <div class="action-buttons">
+        <button class="action-btn btn-copy" onclick="copyLink()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff">
+            <path
+              d="M19.071 10.929a7 7 0 100 9.899l1.414-1.414a9 9 0 110-12.728l-1.414 1.414zM12 13a1 1 0 01-1-1V9a1 1 0 012 0v3a1 1 0 01-1 1z" />
+          </svg>
+          复制链接
+        </button>
+        <button class="action-btn btn-continue" onclick="continueAccess()">
+          继续访问
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- 公告弹窗 -->
-  <div id="announcementModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-lg max-w-2xl w-full mx-4 overflow-hidden transform transition-all duration-300 scale-100">
+  <div id="announcementModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+    style="visibility:hidden">
+    <div
+      class="bg-white rounded-xl shadow-lg max-w-2xl w-full mx-4 overflow-hidden transform transition-all duration-300 scale-100">
       <!-- 弹窗头部 -->
       <div class="bg-primary text-white px-6 py-4 flex justify-between items-center">
         <h3 class="text-lg font-bold">📢 系统公告</h3>
@@ -78,14 +235,15 @@
         </ul>
         <div class="pt-2 text-right">
           <a href="https://github.com/cyx200902/">
-            <span class="text-sm text-gray-500" >Eason Chen</span><br>
+            <span class="text-sm text-gray-500">Eason Chen</span><br>
           </a>
-          <span class="text-sm text-gray-500" >25.8.30</span>
+          <span class="text-sm text-gray-500">25.8.30</span>
         </div>
       </div>
       <!-- 弹窗底部 -->
       <div class="bg-gray-50 px-6 py-4 flex justify-end">
-        <button id="confirmAnnouncementBtn" class="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg transition-all flex items-center">
+        <button id="confirmAnnouncementBtn"
+          class="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg transition-all flex items-center">
           <i class="fa fa-check mr-2"></i>我已知晓
         </button>
       </div>
@@ -100,15 +258,15 @@
         <h1 class="text-xl font-bold text-dark">澄序课程表配置生成器</h1>
       </div>
       <div class="flex items-center space-x-4">
-        <a href="https://astrobox.online/open?source=res&res=%E6%BE%84%E5%BA%8F%E8%AF%BE%E7%A8%8B%E8%A1%A8&provider=official" target="_blank" rel="noopener noreferrer">
-              <img height="40px" src="https://astrobox.online/goab/en/white.svg">
+        <a href="https://astrobox.online/open?source=res&res=%E6%BE%84%E5%BA%8F%E8%AF%BE%E7%A8%8B%E8%A1%A8&provider=official"
+          target="_blank" rel="noopener noreferrer">
+          <img height="40px" src="https://astrobox.online/goab/en/white.svg">
         </a>
-        <button id="saveBtn" class="bg-accent hover:bg-accent/90 text-white px-4 py-2 rounded-lg transition-all flex items-center">
+        <button id="saveBtn"
+          class="bg-accent hover:bg-accent/90 text-white px-4 py-2 rounded-lg transition-all flex items-center">
           <i class="fa fa-save mr-2"></i>保存配置
         </button>
-        <button id="loadBtn" class="bg-secondary hover:bg-secondary/90 text-white px-4 py-2 rounded-lg transition-all flex items-center">
-          <i class="fa fa-upload mr-2"></i>加载配置
-        </button>
+
         <input type="file" id="fileInput" accept=".json" class="hidden">
       </div>
     </div>
@@ -118,44 +276,66 @@
     <!-- 步骤指示器 -->
     <div class="mb-10">
       <div class="flex flex-wrap items-center justify-between">
+
         <div class="flex items-center w-full md:w-auto mb-4 md:mb-0">
-          <div id="step1Indicator" class="step-active w-10 h-10 rounded-full border flex items-center justify-center font-medium mr-4">1</div>
+          <div id="step0Indicator"
+            class="step-active w-10 h-10 rounded-full border flex items-center justify-center font-medium mr-4">0</div>
+          <div>
+            <h2 class="text-lg font-semibold text-dark">开始配置</h2>
+            <p class="text-sm text-gray-500">从新建/导入开始</p>
+          </div>
+        </div>
+
+        <div class="hidden md:block flex-1 max-w-md mx-4 h-1 bg-gray-200 rounded-full">
+          <div id="progressBar0" class="h-full bg-primary rounded-full transition-all duration-500" style="width: 0%">
+          </div>
+        </div>
+
+        <div class="flex items-center w-full md:w-auto mb-4 md:mb-0">
+          <div id="step1Indicator"
+            class="step-active w-10 h-10 rounded-full border flex items-center justify-center font-medium mr-4">1</div>
           <div>
             <h2 class="text-lg font-semibold text-dark">基础信息设置</h2>
             <p class="text-sm text-gray-500">配置课程表的基本信息</p>
           </div>
         </div>
-        
+
         <div class="hidden md:block flex-1 max-w-md mx-4 h-1 bg-gray-200 rounded-full">
-          <div id="progressBar" class="h-full bg-primary rounded-full transition-all duration-500" style="width: 0%"></div>
+          <div id="progressBar1" class="h-full bg-primary rounded-full transition-all duration-500" style="width: 0%">
+          </div>
         </div>
-        
+
         <div class="flex items-center w-full md:w-auto mb-4 md:mb-0">
-          <div id="step2Indicator" class="step-pending w-10 h-10 rounded-full border flex items-center justify-center font-medium mr-4">2</div>
+          <div id="step2Indicator"
+            class="step-pending w-10 h-10 rounded-full border flex items-center justify-center font-medium mr-4">2</div>
           <div>
             <h2 class="text-lg font-semibold text-dark">课程信息管理</h2>
             <p class="text-sm text-gray-500">添加和编辑课程详情</p>
           </div>
         </div>
-        
+
         <div class="hidden md:block flex-1 max-w-md mx-4 h-1 bg-gray-200 rounded-full">
-          <div id="progressBar2" class="h-full bg-primary rounded-full transition-all duration-500" style="width: 0%"></div>
+          <div id="progressBar2" class="h-full bg-primary rounded-full transition-all duration-500" style="width: 0%">
+          </div>
         </div>
-        
+
         <div class="flex items-center w-full md:w-auto mb-4 md:mb-0">
-          <div id="step3Indicator" class="step-pending w-10 h-10 rounded-full border flex items-center justify-center font-medium mr-4">3</div>
+          <div id="step3Indicator"
+            class="step-pending w-10 h-10 rounded-full border flex items-center justify-center font-medium mr-4">3</div>
           <div>
             <h2 class="text-lg font-semibold text-dark">时间表模板</h2>
             <p class="text-sm text-gray-500">设置每日时间节点</p>
           </div>
         </div>
-        
+
         <div class="hidden md:block flex-1 max-w-md mx-4 h-1 bg-gray-200 rounded-full">
-          <div id="progressBar3" class="h-full bg-primary rounded-full transition-all duration-500" style="width: 0%"></div>
+          <div id="progressBar3" class="h-full bg-primary rounded-full transition-all duration-500" style="width: 0%">
+          </div>
         </div>
-        
+
         <div class="flex items-center w-full md:w-auto">
-          <div id="step4Indicator" class="step-pending w-10 h-10 rounded-full border flex items-center justify-center font-medium mr-4">4</div>
+          <div id="step4Indicator"
+            class="step-pending w-10 h-10 rounded-full border flex items-center justify-center font-medium mr-4">4</div>
           <div>
             <h2 class="text-lg font-semibold text-dark">课程安排</h2>
             <p class="text-sm text-gray-500">分配每日课程</p>
@@ -168,114 +348,150 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <!-- 左侧表单区域 -->
       <div class="lg:col-span-2 space-y-6">
+
+        <!-- 步骤0: 开始配置 -->
+        <div id="step0" class="bg-white rounded-xl shadow-sm p-6 transition-all">
+          <h3 class="text-xl font-bold mb-6 pb-2 border-b border-gray-100">开始配置</h3>
+          <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <h1>选择以开始</h1><br>
+            
+                <div class="grid grid-cols-1">
+                  <label class="block text-sm font-medium text-gray-700 mb-1" for="dataStructureVersion">新建课表</label>
+                  <button id="NewBtn"
+                    class="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg transition-all flex items-center">
+                    <i class="fa fa-plus-square mr-2"></i>新建课表</i>
+                  </button>
+                </div>
+
+                <div class="grid grid-cols-1">
+                  <label class="block text-sm font-medium text-gray-700 mb-1" for="name">导入官方课表或Wakeup数据</label>
+                  <button id="loadBtn"
+                    class="bg-secondary hover:bg-secondary/90 text-white px-4 py-2 rounded-lg transition-all flex items-center">
+                    <i class="fa fa-upload mr-2"></i>加载配置
+                  </button>
+                </div>
+              
+
+            </div>
+          </div>
+        </div>
+
         <!-- 步骤1: 基础信息 -->
         <div id="step1" class="bg-white rounded-xl shadow-sm p-6 transition-all">
           <h3 class="text-xl font-bold mb-6 pb-2 border-b border-gray-100">课程表基础信息</h3>
-          
+
           <div class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1" for="dataStructureVersion">数据格式版本</label>
-                <input type="text" id="dataStructureVersion" value="1.1" 
-                  class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus cursor-not-allowed" disabled>
+                <input type="text" id="dataStructureVersion" value="1.1"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus cursor-not-allowed"
+                  disabled>
               </div>
-              
+
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1" for="name">课程表名称</label>
-                <input type="text" id="name" placeholder="例如：高二下学期课程表" 
+                <input type="text" id="name" placeholder="例如：高二下学期课程表"
                   class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus">
               </div>
             </div>
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1" for="createTime">创建时间</label>
-                <input type="text" id="createTime" placeholder="格式：YYMMDDHHmmss" 
+                <input type="text" id="createTime" placeholder="格式：YYMMDDHHmmss"
                   class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus">
               </div>
-              
+
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1" for="updateTime">修改时间</label>
-                <input type="text" id="updateTime" placeholder="格式：YYMMDDHHmmss" 
+                <input type="text" id="updateTime" placeholder="格式：YYMMDDHHmmss"
                   class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus">
               </div>
             </div>
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1" for="courseStart">课程开始日期</label>
-                <input type="text" id="courseStart" placeholder="格式：YYMMDD" 
+                <input type="text" id="courseStart" placeholder="格式：YYMMDD"
                   class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus">
               </div>
-              
+
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1" for="courseEnd">课程结束日期</label>
-                <input type="text" id="courseEnd" placeholder="格式：YYMMDD" 
+                <input type="text" id="courseEnd" placeholder="格式：YYMMDD"
                   class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus">
               </div>
             </div>
           </div>
         </div>
-        
+
         <!-- 步骤2: 课程信息 -->
         <div id="step2" class="bg-white rounded-xl shadow-sm p-6 transition-all hidden">
           <div class="flex justify-between items-center mb-6">
             <h3 class="text-xl font-bold pb-2 border-b border-gray-100">课程信息管理</h3>
-            <button id="addCourseBtn" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-all flex items-center">
+            <button id="addCourseBtn"
+              class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-all flex items-center">
               <i class="fa fa-plus mr-2"></i>添加课程
             </button>
           </div>
-          
+
           <div id="coursesContainer" class="space-y-4">
             <!-- 课程卡片会动态添加到这里 -->
           </div>
         </div>
-        
+
         <!-- 步骤3: 时间表模板 -->
         <div id="step3" class="bg-white rounded-xl shadow-sm p-6 transition-all hidden">
           <div class="flex justify-between items-center mb-6">
             <h3 class="text-xl font-bold pb-2 border-b border-gray-100">时间表模板管理</h3>
-            <button id="addTemplateBtn" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-all flex items-center">
+            <button id="addTemplateBtn"
+              class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-all flex items-center">
               <i class="fa fa-plus mr-2"></i>添加模板
             </button>
           </div>
-          
+
           <div id="templatesContainer" class="space-y-8">
             <!-- 锁定的无课程模板 -->
-            
+
           </div>
         </div>
-        
+
         <!-- 步骤4: 课程安排 -->
         <div id="step4" class="bg-white rounded-xl shadow-sm p-6 transition-all hidden">
           <h3 class="text-xl font-bold mb-6 pb-2 border-b border-gray-100">课程安排</h3>
-          
+
           <div id="scheduleContainer" class="space-y-6">
             <!-- 每天的安排会动态添加到这里 -->
             <!-- 周一到周日会通过JS自动生成 -->
           </div>
         </div>
-        
+
         <!-- 导航按钮 -->
         <div class="flex justify-between mt-8">
-          <button id="prevBtn" class="bg-secondary hover:bg-secondary/90 text-white px-6 py-2 rounded-lg transition-all flex items-center opacity-50 cursor-not-allowed">
+          <button id="prevBtn"
+            class="bg-secondary hover:bg-secondary/90 text-white px-6 py-2 rounded-lg transition-all flex items-center opacity-50 cursor-not-allowed">
             <i class="fa fa-arrow-left mr-2"></i>上一步
           </button>
-          <button id="nextBtn" class="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg transition-all flex items-center">
+          <button id="nextBtn"
+            class="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg transition-all flex items-center">
             下一步<i class="fa fa-arrow-right ml-2"></i>
           </button>
         </div>
       </div>
-      
+
       <!-- 右侧JSON预览区域 -->
       <div class="lg:col-span-1">
         <div class="bg-white rounded-xl shadow-sm p-6 sticky top-24 z-30">
           <h3 class="text-xl font-bold mb-4 pb-2 border-b border-gray-100">JSON配置预览</h3>
           <div class="relative">
-            <button id="copyJsonBtn" class="absolute top-2 right-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm transition-all">
+            <button id="copyJsonBtn"
+              class="absolute top-2 right-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm transition-all">
               <i class="fa fa-copy mr-1"></i>复制
             </button>
-            <pre id="jsonPreview" class="bg-gray-50 p-4 rounded-lg text-sm overflow-x-auto max-h-[600px] font-mono"></pre>
+            <pre id="jsonPreview"
+              class="bg-gray-50 p-4 rounded-lg text-sm overflow-x-auto max-h-[600px] font-mono"></pre>
           </div>
           <div id="copyAlert" class="mt-2 text-sm text-accent hidden">
             <i class="fa fa-check mr-1"></i>已复制到剪贴板
@@ -287,27 +503,28 @@
 
   <footer class="bg-dark text-white py-6 mt-12">
     <div class="container mx-auto px-4 text-center">
-      <p>澄序课程表配置生成器</p> 
+      <p>澄序课程表配置生成器</p>
       <p class="flex items-center justify-center mt-2">
         <a href="https://github.com/cyx200902/" target="_blank">
-          <img src="https://img.shields.io/badge/Eason%20Chen-black?logo=github" 
-              style="vertical-align: middle; margin: 0 auto;">
+          <img src="https://img.shields.io/badge/Eason%20Chen-black?logo=github"
+            style="vertical-align: middle; margin: 0 auto;">
         </a>
       </p>
-      <p>© 2019-2025 WaterFlames.cn. All Rights Reserved.｜<a href="https://beian.miit.gov.cn/">闽ICP备2024035715号-1</a>｜<a href="https://www.12377.cn/">中国互联网违法和不良信息举报中心</a></p>
+      <p>© 2019-2025 WaterFlames.cn. All Rights Reserved.｜<a href="https://beian.miit.gov.cn/">闽ICP备2024035715号-1</a>｜<a
+          href="https://www.12377.cn/">中国互联网违法和不良信息举报中心</a></p>
     </div>
   </footer>
 
   <script>
     // 当前步骤
-    let currentStep = 1;
-    const totalSteps = 4;
-    
+    let currentStep = 0;
+    const totalSteps = 5;
+
     // 获取当前项目开始时间作为默认时间
     const now = new Date();
     const defaultHour = now.getHours().toString().padStart(2, '0');
     const defaultMinute = now.getMinutes().toString().padStart(2, '0');
-    
+
     // 生成当前时间的默认格式 (YYMMDDHHmmss)
     const getCurrentTimeString = () => {
       const date = new Date();
@@ -319,7 +536,7 @@
       const seconds = date.getSeconds().toString().padStart(2, '0');
       return `${year}${month}${day}${hours}${minutes}${seconds}`;
     };
-    
+
     // 初始化数据结构
     let courseData = {
       basic: {
@@ -341,7 +558,7 @@
       ],
       courseSchedule: [] // 将通过JS初始化周一至周日
     };
-    
+
     // 初始化周一至周日的课程安排（固定顺序）
     const dayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
     dayNames.forEach(() => {
@@ -353,47 +570,53 @@
     });
 
     // DOM 元素
+    const step0 = document.getElementById('step0');
     const step1 = document.getElementById('step1');
     const step2 = document.getElementById('step2');
     const step3 = document.getElementById('step3');
     const step4 = document.getElementById('step4');
-    
+
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
-    
+
     const jsonPreview = document.getElementById('jsonPreview');
     const copyJsonBtn = document.getElementById('copyJsonBtn');
     const copyAlert = document.getElementById('copyAlert');
-    
+
     const saveBtn = document.getElementById('saveBtn');
     const loadBtn = document.getElementById('loadBtn');
     const fileInput = document.getElementById('fileInput');
 
     // 步骤指示器
     const stepIndicators = [
+      document.getElementById('step0Indicator'),
       document.getElementById('step1Indicator'),
       document.getElementById('step2Indicator'),
       document.getElementById('step3Indicator'),
       document.getElementById('step4Indicator')
     ];
-    
+
     // 进度条
     const progressBars = [
-      document.getElementById('progressBar'),
+      document.getElementById('progressBar0'),
+      document.getElementById('progressBar1'),
       document.getElementById('progressBar2'),
       document.getElementById('progressBar3')
     ];
 
     // 初始化页面
     function init() {
+      // 先初始化公告弹窗，再执行原页面初始化
+      initAnnouncementModal();
+
       // 设置创建时间和修改时间的默认值
       document.getElementById('createTime').value = courseData.basic.createTime;
       document.getElementById('updateTime').value = courseData.basic.updateTime;
-      
+
       updateStepUI();
       updateJsonPreview();
       setupEventListeners();
-      
+
       // 初始化周一至周日的课程安排UI（固定顺序）
       initWeekDaysSchedule();
     }
@@ -403,15 +626,17 @@
       // 步骤导航
       prevBtn.addEventListener('click', goToPrevStep);
       nextBtn.addEventListener('click', goToNextStep);
-      
+      // 新建课表其实也是下一步
+      NewBtn.addEventListener('click', goToNextStep);
+
       // 复制JSON
       copyJsonBtn.addEventListener('click', copyJsonToClipboard);
-      
+
       // 保存和加载配置
       saveBtn.addEventListener('click', saveConfiguration);
       loadBtn.addEventListener('click', () => fileInput.click());
       fileInput.addEventListener('change', loadConfiguration);
-      
+
       // 基础信息输入变化
       document.getElementById('dataStructureVersion').addEventListener('input', updateBasicInfo);
       document.getElementById('name').addEventListener('input', updateBasicInfo);
@@ -419,20 +644,20 @@
       document.getElementById('updateTime').addEventListener('input', updateBasicInfo);
       document.getElementById('courseStart').addEventListener('input', updateBasicInfo);
       document.getElementById('courseEnd').addEventListener('input', updateBasicInfo);
-      
+
       // 课程管理
       document.getElementById('addCourseBtn').addEventListener('click', addCourse);
       document.getElementById('coursesContainer').addEventListener('click', handleCourseActions);
       document.getElementById('coursesContainer').addEventListener('input', updateCourseInfo);
-      
+
       // 时间表模板管理
       document.getElementById('addTemplateBtn').addEventListener('click', addTemplate);
       document.getElementById('templatesContainer').addEventListener('click', handleTemplateActions);
       document.getElementById('templatesContainer').addEventListener('change', updateTemplateInfo);
-      
+
       // 课程安排管理
       document.getElementById('scheduleContainer').addEventListener('change', handleScheduleChange);
-      document.getElementById('scheduleContainer').addEventListener('click', function(e) {
+      document.getElementById('scheduleContainer').addEventListener('click', function (e) {
         // 处理添加课程按钮点击
         if (e.target.closest('.add-course-to-schedule')) {
           const btn = e.target.closest('.add-course-to-schedule');
@@ -441,7 +666,7 @@
           }
           return;
         }
-        
+
         // 处理删除课程按钮点击
         if (e.target.closest('.delete-course-item')) {
           handleDeleteCourseFromSchedule(e);
@@ -455,14 +680,14 @@
     function initWeekDaysSchedule() {
       const scheduleContainer = document.getElementById('scheduleContainer');
       scheduleContainer.innerHTML = '';
-      
+
       // 严格按照周一至周日顺序添加
       dayNames.forEach((dayName, index) => {
         // 创建每一天的容器并保留在DOM中
         const dayContainer = document.createElement('div');
         dayContainer.id = `dayContainer-${index}`;
         scheduleContainer.appendChild(dayContainer);
-        
+
         // 渲染当天内容
         renderDayContent(index, dayName);
       });
@@ -472,26 +697,26 @@
     function renderDayContent(dayIndex, dayName) {
       const dayContainer = document.getElementById(`dayContainer-${dayIndex}`);
       if (!dayContainer) return;
-      
+
       const dayData = courseData.courseSchedule[dayIndex];
-      
+
       // 生成时间表模板下拉选项
       let timetableOptions = '<option value="-1" >今日无课</option>';
       courseData.timetableTemplate.forEach((_, i) => {
         timetableOptions += `<option value="${i}" ${dayData.timetableId[0] === i ? 'selected' : ''}>模板 #${i + 1}</option>`;
       });
-      
-      
+
+
       // 生成课程下拉选项
       let courseOptions = '<option value="">选择课程</option>';
       courseData.courses.forEach((course, i) => {
         const courseName = course.courseName || `课程 #${i + 1}`;
         courseOptions += `<option value="${i}">${courseName}</option>`;
       });
-      
+
       // 检查是否使用无课程模板
       const isNoCourseTemplate = dayData.timetableId[0] === -1;
-      
+
       dayContainer.innerHTML = `
         <div class="day-card bg-neutral rounded-lg p-4 card-hover">
           <div class="flex justify-between items-start mb-4">
@@ -549,7 +774,7 @@
           </div>
         </div>
       `;
-      
+
       // 设置已选择的课程
       const courseItems = dayContainer.querySelectorAll('.course-item');
       courseItems.forEach((item, itemIndex) => {
@@ -564,17 +789,25 @@
     // 更新步骤UI
     function updateStepUI() {
       // 隐藏所有步骤
+      step0.classList.add('hidden');
       step1.classList.add('hidden');
       step2.classList.add('hidden');
       step3.classList.add('hidden');
       step4.classList.add('hidden');
-      
+
       // 显示当前步骤
-      switch(currentStep) {
-        case 1:
-          step1.classList.remove('hidden');
+      switch (currentStep) {
+        case 0:
+          step0.classList.remove('hidden');
           prevBtn.classList.add('opacity-50', 'cursor-not-allowed');
           prevBtn.disabled = true;
+          nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+          nextBtn.disabled = true;
+          break;
+        case 1:
+          step1.classList.remove('hidden');
+          prevBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          prevBtn.disabled = false;
           nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
           nextBtn.disabled = false;
           break;
@@ -600,35 +833,40 @@
           nextBtn.disabled = true;
           break;
       }
-      
+
       // 更新步骤指示器
       stepIndicators.forEach((indicator, index) => {
         indicator.classList.remove('step-active', 'step-completed', 'step-pending');
-        if (index + 1 < currentStep) {
+        if (index < currentStep) {
           indicator.classList.add('step-completed');
-        } else if (index + 1 === currentStep) {
+        } else if (index === currentStep) {
           indicator.classList.add('step-active');
         } else {
           indicator.classList.add('step-pending');
         }
       });
-      
+
       // 更新进度条
       progressBars.forEach((bar, index) => {
-        bar.style.width = (index + 1 < currentStep) ? '100%' : '0%';
+        bar.style.width = (index < currentStep) ? '100%' : '0%';
       });
-      
+
       // 滚动到顶部
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     // 上一步
     function goToPrevStep() {
-      if (currentStep > 1) {
+      if (currentStep > 0) {
         currentStep--;
+        console.log(currentStep)
         updateStepUI();
         nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         nextBtn.disabled = false;
+      }
+      if (currentStep == 0) {
+        NewBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        NewBtn.disabled = true;
       }
     }
 
@@ -640,6 +878,7 @@
           updateAllScheduleDropdowns();
         }
         currentStep++;
+        console.log(currentStep)
         updateStepUI();
       }
     }
@@ -664,11 +903,11 @@
       // 保存前更新修改时间
       courseData.basic.updateTime = getCurrentTimeString();
       document.getElementById('updateTime').value = courseData.basic.updateTime;
-      
+
       const jsonStr = JSON.stringify(courseData, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-      
+
       const a = document.createElement('a');
       a.href = url;
       a.download = courseData.basic.name ? `${courseData.basic.name}.json` : 'courseData.json';
@@ -676,7 +915,7 @@
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       updateJsonPreview();
     }
 
@@ -684,12 +923,12 @@
     function loadConfiguration(event) {
       const file = event.target.files[0];
       if (!file) return;
-      
+
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
           const data = JSON.parse(e.target.result);
-          
+
           // 确保有7天的课程安排，按周一至周日顺序
           if (!data.courseSchedule || data.courseSchedule.length !== 7) {
             const newSchedule = [];
@@ -702,14 +941,24 @@
             });
             data.courseSchedule = newSchedule;
           }
-          
+
           // 确保创建时间和修改时间存在
           if (!data.basic.createTime) data.basic.createTime = getCurrentTimeString();
           if (!data.basic.updateTime) data.basic.updateTime = getCurrentTimeString();
-          
+
           courseData = data;
           updateFormFromData();
           updateJsonPreview();
+
+          // 加载成功允许进入下一步
+          nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          nextBtn.disabled = false;
+          loadBtn.innerHTML = '<i class="fa fa-upload mr-2"></i>加载成功,点击下一步继续配置'
+          loadBtn.classList.remove('bg-secondary', 'hover:bg-secondary/90');
+          loadBtn.classList.add('bg-accent', 'hover:bg-accent/90');
+          NewBtn.classList.add('opacity-50', 'cursor-not-allowed');
+          NewBtn.disabled = true;
+          
         } catch (error) {
           alert('加载配置失败，请确保文件是有效的JSON格式');
           console.error(error);
@@ -727,7 +976,7 @@
       document.getElementById('updateTime').value = courseData.basic.updateTime || '';
       document.getElementById('courseStart').value = courseData.basic.courseStart || '';
       document.getElementById('courseEnd').value = courseData.basic.courseEnd || '';
-      
+
       // 更新课程列表
       const coursesContainer = document.getElementById('coursesContainer');
       coursesContainer.innerHTML = '';
@@ -743,12 +992,12 @@
       for (let i = 0; i < courseData.timetableTemplate.length; i++) {
         addTemplateToDOM(courseData.timetableTemplate[i], i);
       }
-      
+
       // 更新课程安排（按周一至周日顺序）
       dayNames.forEach((dayName, index) => {
         renderDayContent(index, dayName);
       });
-      
+
       // 更新课程ID显示
       updateCourseIdDisplay();
     }
@@ -761,7 +1010,7 @@
       courseData.basic.updateTime = document.getElementById('updateTime').value;
       courseData.basic.courseStart = document.getElementById('courseStart').value;
       courseData.basic.courseEnd = document.getElementById('courseEnd').value;
-      
+
       updateJsonPreview();
     }
 
@@ -772,7 +1021,7 @@
         teacher: "",
         classroom: ""
       };
-      
+
       courseData.courses.push(newCourse);
       addCourseToDOM(newCourse, courseData.courses.length - 1);
       updateJsonPreview();
@@ -781,11 +1030,11 @@
     // 添加课程到DOM
     function addCourseToDOM(course, index) {
       const coursesContainer = document.getElementById('coursesContainer');
-      
+
       const courseCard = document.createElement('div');
       courseCard.className = 'course-card bg-neutral rounded-lg p-4 card-hover';
       courseCard.dataset.index = index;
-      
+
       courseCard.innerHTML = `
         <div class="flex justify-between items-start mb-3">
           <h4 class="font-medium">课程 #${index + 1}</h4>
@@ -811,7 +1060,7 @@
           </div>
         </div>
       `;
-      
+
       coursesContainer.appendChild(courseCard);
     }
 
@@ -820,17 +1069,17 @@
       if (e.target.closest('.delete-course')) {
         const courseCard = e.target.closest('.course-card');
         const index = parseInt(courseCard.dataset.index);
-        
+
         // 移除数据
         courseData.courses.splice(index, 1);
-        
+
         // 重新渲染课程列表
         const coursesContainer = document.getElementById('coursesContainer');
         coursesContainer.innerHTML = '';
         courseData.courses.forEach((course, i) => {
           addCourseToDOM(course, i);
         });
-        
+
         // 更新课程ID显示和所有相关下拉菜单
         updateCourseIdDisplay();
         updateAllCourseDropdowns();
@@ -840,17 +1089,17 @@
 
     // 更新课程信息
     function updateCourseInfo(e) {
-      if (e.target.classList.contains('course-name') || 
-          e.target.classList.contains('course-teacher') || 
-          e.target.classList.contains('course-classroom')) {
-          
+      if (e.target.classList.contains('course-name') ||
+        e.target.classList.contains('course-teacher') ||
+        e.target.classList.contains('course-classroom')) {
+
         const courseCard = e.target.closest('.course-card');
         const index = parseInt(courseCard.dataset.index);
-        
+
         courseData.courses[index].courseName = courseCard.querySelector('.course-name').value;
         courseData.courses[index].teacher = courseCard.querySelector('.course-teacher').value;
         courseData.courses[index].classroom = courseCard.querySelector('.course-classroom').value;
-        
+
         // 更新课程ID显示和所有相关下拉菜单
         updateCourseIdDisplay();
         updateAllCourseDropdowns();
@@ -870,10 +1119,10 @@
           timeMinute: defaultMinute
         }
       ];
-      
+
       courseData.timetableTemplate.push(newTemplate);
       addTemplateToDOM(newTemplate, courseData.timetableTemplate.length - 1);
-      
+
       // 更新所有时间表下拉菜单
       updateAllScheduleDropdowns();
       updateJsonPreview();
@@ -882,11 +1131,11 @@
     // 添加时间表模板到DOM
     function addTemplateToDOM(template, index) {
       const templatesContainer = document.getElementById('templatesContainer');
-      
+
       const templateCard = document.createElement('div');
       templateCard.className = 'template-card bg-neutral rounded-lg p-4 card-hover';
       templateCard.dataset.index = index;
-      
+
       templateCard.innerHTML = `
         <div class="flex justify-between items-start mb-4">
           <h4 class="font-medium">时间表模板 #${index + 1}</h4>
@@ -902,14 +1151,14 @@
         <div class="time-nodes space-y-3">
         </div>
       `;
-      
+
       // 添加时间节点
       const timeNodesContainer = templateCard.querySelector('.time-nodes');
       template.forEach((node, nodeIndex) => {
         const timeNode = createTimeNodeElement(node, nodeIndex);
         timeNodesContainer.appendChild(timeNode);
       });
-      
+
       templatesContainer.appendChild(templateCard);
     }
 
@@ -918,10 +1167,10 @@
       const timeNode = document.createElement('div');
       timeNode.className = 'time-node bg-white rounded p-3 border border-gray-200';
       timeNode.dataset.index = index;
-      
+
       // 对于start类型，隐藏时间输入，其他类型显示
       const showTime = node.type !== 'start';
-      
+
       timeNode.innerHTML = `
         <div class="flex justify-between items-center mb-2">
           <span class="text-sm font-medium">时间节点 #${index + 1}</span>
@@ -953,7 +1202,7 @@
           </div>
         </div>
       `;
-      
+
       return timeNode;
     }
 
@@ -965,39 +1214,39 @@
         const templateIndex = parseInt(templateCard.dataset.index);
         const timeNodesContainer = templateCard.querySelector('.time-nodes');
         const lastNodeIndex = timeNodesContainer.children.length;
-        
+
         // 创建新的时间节点
         const newNode = {
           type: "course",
           timeHour: defaultHour,
           timeMinute: defaultMinute
         };
-        
+
         // 添加到数据
         courseData.timetableTemplate[templateIndex].splice(lastNodeIndex - 1, 0, newNode);
-        
+
         // 更新DOM
         timeNodesContainer.innerHTML = '';
         courseData.timetableTemplate[templateIndex].forEach((node, nodeIndex) => {
           const timeNode = createTimeNodeElement(node, nodeIndex);
           timeNodesContainer.appendChild(timeNode);
         });
-        
+
         updateJsonPreview();
       }
-      
+
       // 删除时间节点
       if (e.target.closest('.delete-time-node') && !e.target.closest('.template-locked')) {
         const timeNode = e.target.closest('.time-node');
         const templateCard = e.target.closest('.template-card');
         const templateIndex = parseInt(templateCard.dataset.index);
         const nodeIndex = parseInt(timeNode.dataset.index);
-        
+
         // 确保至少保留开始和结束节点
         if (courseData.timetableTemplate[templateIndex].length > 2) {
           // 从数据中删除
           courseData.timetableTemplate[templateIndex].splice(nodeIndex, 1);
-          
+
           // 更新DOM
           const timeNodesContainer = templateCard.querySelector('.time-nodes');
           timeNodesContainer.innerHTML = '';
@@ -1005,28 +1254,28 @@
             const newTimeNode = createTimeNodeElement(node, i);
             timeNodesContainer.appendChild(newTimeNode);
           });
-          
+
           updateJsonPreview();
         }
       }
-      
+
       // 删除模板（仅允许删除非默认模板）
       if (e.target.closest('.delete-template')) {
         const templateCard = e.target.closest('.template-card');
         const templateIndex = parseInt(templateCard.dataset.index);
-        
+
         // 从数据中删除
         courseData.timetableTemplate.splice(templateIndex, 1);
-        
+
         // 更新DOM
         const templatesContainer = document.getElementById('templatesContainer');
         templatesContainer.innerHTML = '';
-        
+
         // 重新添加剩余模板
         courseData.timetableTemplate.forEach((template, i) => {
-            addTemplateToDOM(template, i);
+          addTemplateToDOM(template, i);
         });
-        
+
         // 更新所有时间表下拉菜单
         updateAllScheduleDropdowns();
         updateJsonPreview();
@@ -1042,10 +1291,10 @@
         const templateIndex = parseInt(templateCard.dataset.index);
         const nodeIndex = parseInt(timeNode.dataset.index);
         const type = e.target.value;
-        
+
         // 更新数据
         courseData.timetableTemplate[templateIndex][nodeIndex].type = type;
-        
+
         // 显示或隐藏时间输入
         const timeInputs = timeNode.querySelectorAll('.time-time');
         if (type === 'start') {
@@ -1065,10 +1314,10 @@
             timeNode.querySelector('.time-minute').value = defaultMinute;
           }
         }
-        
+
         updateJsonPreview();
       }
-      
+
       // 处理小时变化
       if (e.target.classList.contains('time-hour')) {
         const timeNode = e.target.closest('.time-node');
@@ -1076,11 +1325,11 @@
         const templateIndex = parseInt(templateCard.dataset.index);
         const nodeIndex = parseInt(timeNode.dataset.index);
         const hour = e.target.value.padStart(2, '0');
-        
+
         courseData.timetableTemplate[templateIndex][nodeIndex].timeHour = hour;
         updateJsonPreview();
       }
-      
+
       // 处理分钟变化
       if (e.target.classList.contains('time-minute')) {
         const timeNode = e.target.closest('.time-node');
@@ -1088,7 +1337,7 @@
         const templateIndex = parseInt(templateCard.dataset.index);
         const nodeIndex = parseInt(timeNode.dataset.index);
         const minute = e.target.value.padStart(2, '0');
-        
+
         courseData.timetableTemplate[templateIndex][nodeIndex].timeMinute = minute;
         updateJsonPreview();
       }
@@ -1102,15 +1351,15 @@
         const dayContainer = dayCard.parentElement;
         const dayIndex = parseInt(dayContainer.id.split('-')[1]);
         const timetableId = parseInt(e.target.value);
-        
+
         courseData.courseSchedule[dayIndex].timetableId = [timetableId];
-        
+
         // 只更新当前天的内容，不改变位置
         renderDayContent(dayIndex, dayNames[dayIndex]);
-        
+
         updateJsonPreview();
       }
-      
+
       // 处理课程选择变化
       if (e.target.classList.contains('course-id')) {
         const courseItem = e.target.closest('.course-item');
@@ -1118,11 +1367,11 @@
         const dayIndex = parseInt(courseList.dataset.dayIndex);
         const itemIndex = Array.from(courseList.children).indexOf(courseItem);
         const courseId = e.target.value ? [parseInt(e.target.value)] : [];
-        
+
         if (courseData.courseSchedule[dayIndex].courseList[itemIndex]) {
           courseData.courseSchedule[dayIndex].courseList[itemIndex].courseId = courseId;
         }
-        
+
         updateJsonPreview();
       }
     }
@@ -1134,17 +1383,17 @@
       const dayCard = addButton.closest('.day-card');
       const dayContainer = dayCard.parentElement;
       const dayIndex = parseInt(dayContainer.id.split('-')[1]);
-      
+
       // 添加到数据
       const newCourseItem = {
         courseId: [],
         courseRepeatability: 1
       };
       courseData.courseSchedule[dayIndex].courseList.push(newCourseItem);
-      
+
       // 只更新当前天的内容，不改变位置
       renderDayContent(dayIndex, dayNames[dayIndex]);
-      
+
       updateJsonPreview();
     }
 
@@ -1154,13 +1403,13 @@
       const courseList = e.target.closest('.course-list');
       const dayIndex = parseInt(courseList.dataset.dayIndex);
       const itemIndex = Array.from(courseList.children).indexOf(courseItem);
-      
+
       // 从数据中删除
       courseData.courseSchedule[dayIndex].courseList.splice(itemIndex, 1);
-      
+
       // 只更新当前天的内容，不改变位置
       renderDayContent(dayIndex, dayNames[dayIndex]);
-      
+
       updateJsonPreview();
     }
 
@@ -1172,11 +1421,11 @@
         const dayContainer = dayCard.parentElement;
         const dayIndex = parseInt(dayContainer.id.split('-')[1]);
         const repeatability = parseInt(e.target.value) || 1;
-        
+
         courseData.courseSchedule[dayIndex].timetableRepeatability = repeatability;
         updateJsonPreview();
       }
-      
+
       // 处理课程重复次数变化
       if (e.target.classList.contains('course-repeatability')) {
         const courseItem = e.target.closest('.course-item');
@@ -1184,11 +1433,11 @@
         const dayIndex = parseInt(courseList.dataset.dayIndex);
         const itemIndex = Array.from(courseList.children).indexOf(courseItem);
         const repeatability = parseInt(e.target.value) || 1;
-        
+
         if (courseData.courseSchedule[dayIndex].courseList[itemIndex]) {
           courseData.courseSchedule[dayIndex].courseList[itemIndex].courseRepeatability = repeatability;
         }
-        
+
         updateJsonPreview();
       }
     }
@@ -1226,6 +1475,8 @@
       const closeBtn = document.getElementById('closeAnnouncementBtn');
       const confirmBtn = document.getElementById('confirmAnnouncementBtn');
 
+      modal.style.visibility = "visible";
+
       // 关闭弹窗函数
       function closeModal() {
         modal.classList.add('opacity-0');
@@ -1245,13 +1496,47 @@
       });
     }
 
+    function isQQBrowser() {
+      var userAgent = navigator.userAgent;
+      return /MQQBrowser/i.test(userAgent);
+    }
+    if (isQQBrowser()) {
+      console.log("用户正在使用QQ浏览器");
+    }
+    // 复制当前页面链接到剪贴板
+    function copyLink() {
+      const currentUrl = window.location.href;
+      navigator.clipboard.writeText(currentUrl)
+        .then(() => {
+          alert('链接已复制，请粘贴到浏览器打开');
+        })
+        .catch(err => {
+          console.error('复制失败:', err);
+          alert('复制失败，请手动复制链接');
+        });
+    }
+    // 继续访问当前页面
+    function continueAccess() {
+      document.getElementById('qqMask').classList.remove('show');
+
+      init(); // 原页面的初始化函数
+    }
+
     // 页面加载完成后自动显示公告弹窗
     document.addEventListener('DOMContentLoaded', () => {
-      // 先初始化公告弹窗，再执行原页面初始化
-      initAnnouncementModal();
-      init(); // 原页面的初始化函数
+      const qqMask = document.getElementById('qqMask');
+      if (isQQBrowser()) {
+        // 检测到QQ客户端：显示遮罩
+        qqMask.classList.add('show');
+      } else {
+        // 非QQ环境：隐藏遮罩
+        qqMask.classList.remove('show');
+
+        init(); // 原页面的初始化函数
+      }
     });
 
   </script>
 </body>
+
 </html>
