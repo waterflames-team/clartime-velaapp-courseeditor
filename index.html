@@ -1147,9 +1147,10 @@
         // 去重（基于teacher+room组合已经确保了唯一性，这里主要是确保没有完全重复的条目）
         const uniqueCourses = [];
         const seenCourseIdentifiers = new Set();
+
         processedCourses.forEach(course => {
-          // 创建课程唯一标识（组合courseName、teacher和classroom）
-          const courseIdentifier = `${course.courseName}_${course.teacher}_${course.classroom}`;
+          // 创建课程唯一标识（组合courseName、teacher、classroom和id）
+          const courseIdentifier = `${course.courseName}_${course.teacher}_${course.classroom}_${course.id}`;
           if (!seenCourseIdentifiers.has(courseIdentifier)) {
             seenCourseIdentifiers.add(courseIdentifier);
             uniqueCourses.push(course);
@@ -1167,9 +1168,11 @@
         });
         
         // 更新课程安排中的ID引用
-        updatedCourseScheduleArray.forEach(schedule => {
+        updatedCourseScheduleArray.forEach((schedule, index) => {
           if (idToIndexMap.has(schedule.id)) {
             schedule.id = idToIndexMap.get(schedule.id);
+          } else {
+            console.log(`警告: 课程安排 ${index} 的ID ${schedule.id} 未找到映射，课程名称: ${schedule.courseName}`);
           }
         });
         
