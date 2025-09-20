@@ -1158,6 +1158,20 @@
         
         // 先按ID排序
         uniqueCourses.sort((a, b) => a.id - b.id);
+
+        // 重新分配ID，确保ID与最终列表中的索引一致
+        const idToIndexMap = new Map();
+        uniqueCourses.forEach((course, index) => {
+          idToIndexMap.set(course.id, index);
+          course.id = index; // 更新ID为索引值
+        });
+        
+        // 更新课程安排中的ID引用
+        updatedCourseScheduleArray.forEach(schedule => {
+          if (idToIndexMap.has(schedule.id)) {
+            schedule.id = idToIndexMap.get(schedule.id);
+          }
+        });
         
         // 移除ID字段
         const finalCourses = uniqueCourses.map(({id, ...rest}) => rest);
