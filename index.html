@@ -228,7 +228,7 @@
       <div class="p-6 space-y-4">
         <p class="text-gray-700">使用帮助</p>
         <ul class="list-disc pl-5 text-gray-600 space-y-2">
-          <li>该页面为 <a href="https://www.waterflames.cn/">澄序课程表——课程腕上抬手看</a> 配置页面 V0.2.0-Beta </li>
+          <li>该页面为 <a href="https://www.waterflames.cn/">澄序课程表——课程腕上抬手看</a> 配置页面 V0.2.1-Beta </li>
           <li>若遇到奇奇怪怪的问题，请点击「保存配置」后刷新页面，「加载配置」后即可重新配置</li>
           <li>若导入失败请检查数据格式规范</li>
           <li>测试群：1042873150</li>
@@ -971,7 +971,6 @@
         // 初始化变量存储解析后的数据
         let basicInfo = {};          // 存储基本信息（来自2号元素）
         let coursesInfoArray = [];   // 存储课程名称信息（来自3号元素）
-        let courseDetailsArray = []; // 存储教室和教师信息（来自4号元素）
         let timeDataArray = [];      // 存储时间信息（来自1号元素）
         let courseScheduleArray = []; // 存储课程安排信息（来自4号元素）
         
@@ -1006,12 +1005,10 @@
             throw new Error('3号元素不是有效的数组格式');
           }
           
-          // 4. 教室和教师信息（room、teacher）来自4号元素（索引4）
-          // 5. 课程安排数组来自4号元素（索引4）
+          // 4. 课程安排数组来自4号元素（索引4）
           if (Array.isArray(jsonData[4])) {
-            courseDetailsArray = jsonData[4];
             courseScheduleArray = jsonData[4];
-            console.log('成功提取课程详情和课程安排数组，长度:', courseDetailsArray.length);
+            console.log('成功提取课程安排数组，长度:', courseScheduleArray.length);
           } else {
             throw new Error('4号元素不是有效的数组格式');
           }
@@ -1021,7 +1018,6 @@
           console.log(`- 时间数据数组长度: ${timeDataArray.length}`);
           console.log(`- 基本信息: ${JSON.stringify(basicInfo)}`);
           console.log(`- 课程名称信息数组长度: ${coursesInfoArray.length}`);
-          console.log(`- 课程详情数组长度: ${courseDetailsArray.length}`);
           console.log(`- 课程安排数组长度: ${courseScheduleArray.length}`);
           
         } catch (parseError) {
@@ -1043,23 +1039,12 @@
           }
         });
         
-        // 创建课程详情映射 (id -> {teacher, room})
-        const courseDetailsMap = new Map();
-        courseDetailsArray.forEach(detail => {
-          if (detail.id !== undefined) {
-            courseDetailsMap.set(detail.id, {
-              teacher: detail.teacher || '',
-              room: detail.room || detail.classroom || '' // 同时支持room和classroom字段
-            });
-          }
-        });
-        
         // 初始化更新后的课程安排数组
         let updatedCourseScheduleArray = [];
         
-        // 以"teacher"和"room"字段作为核心驱动要素，处理课程ID冲突
-        // 创建一个映射，用于存储teacher+room组合到课程ID的映射
-        const teacherRoomToIdMap = new Map();
+        // 以"courseName"、"teacher"和"room"字段作为核心驱动要素，处理课程ID冲突
+        // 创建一个映射，用于存储courseName+teacher+room组合到课程ID的映射
+        const courseTeacherRoomToIdMap = new Map();
         // 存储已使用的ID，用于分配新ID
         const usedIds = new Set();
         // 存储ID映射关系，用于后续更新课程安排中的ID
@@ -1072,37 +1057,39 @@
           }
         });
         
-        // 处理课程详细信息，为每个teacher+room组合分配唯一ID
+        // 处理课程详细信息，为每个courseName+teacher+room组合分配唯一ID
         const processedCourses = [];
         
         // 首先处理课程安排数组，确保每个课程安排都有正确的ID映射
         updatedCourseScheduleArray = courseScheduleArray.map(schedule => {
-          // 获取课程名称和详细信息
+          // 获取课程名称
           const courseName = courseNameMap.get(schedule.id) || '';
-          const courseDetail = courseDetailsMap.get(schedule.id) || { teacher: '', room: '' };
           
-          // 创建teacher+room组合的唯一标识
-          const teacherRoomKey = `${courseDetail.teacher}_${courseDetail.room}`;
+          // 直接从课程安排中获取teacher和room信息
+          const teacher = schedule.teacher || '';
+          const room = schedule.room || schedule.classroom || '';
+          
+          // 创建courseName+teacher+room组合的唯一标识
+          const courseTeacherRoomKey = `${courseName}_${teacher}_${room}`;
           
           let courseId = schedule.id;
           
-          // 检查原始ID是否有效（非0且在课程信息数组中存在）
-          const isValidOriginalId = schedule.id !== 0 && coursesInfoArray.some(course => course.id === schedule.id);
+          // 检查原始ID是否有效（在课程信息数组中存在，包括ID为0的情况）
+          const isValidOriginalId = coursesInfoArray.some(course => course.id === schedule.id);
           
           if (isValidOriginalId) {
-            // 如果原始ID有效，找到该课程在coursesInfoArray中的索引作为courseId
-            const courseIndex = coursesInfoArray.findIndex(course => course.id === schedule.id);
-            courseId = courseIndex; // 使用数组索引作为courseId
+            // 如果原始ID有效，保留原始ID
+            courseId = schedule.id;
           } else {
-            // 检查是否已存在相同的teacher+room组合
-            if (teacherRoomToIdMap.has(teacherRoomKey)) {
+            // 检查是否已存在相同的courseName+teacher+room组合
+            if (courseTeacherRoomToIdMap.has(courseTeacherRoomKey)) {
               // 如果已存在，使用已分配的ID
-              courseId = teacherRoomToIdMap.get(teacherRoomKey);
+              courseId = courseTeacherRoomToIdMap.get(courseTeacherRoomKey);
             } else {
-              // 检查该ID是否已被其他teacher+room组合使用
+              // 检查该ID是否已被其他courseName+teacher+room组合使用
               let isIdConflict = false;
-              for (const [key, existingId] of teacherRoomToIdMap.entries()) {
-                if (existingId === courseId && key !== teacherRoomKey) {
+              for (const [key, existingId] of courseTeacherRoomToIdMap.entries()) {
+                if (existingId === courseId && key !== courseTeacherRoomKey) {
                   isIdConflict = true;
                   break;
                 }
@@ -1119,8 +1106,8 @@
                 usedIds.add(courseId);
               }
               
-              // 存储teacher+room组合到ID的映射
-              teacherRoomToIdMap.set(teacherRoomKey, courseId);
+              // 存储courseName+teacher+room组合到ID的映射
+              courseTeacherRoomToIdMap.set(courseTeacherRoomKey, courseId);
             }
           }
           
@@ -1130,12 +1117,19 @@
           }
           
           // 添加处理后的课程
-          if (!processedCourses.some(c => c.id === courseId && c.courseName === courseName)) {
+          // 检查是否已存在完全相同的课程（courseName、teacher、classroom都相同）
+          const isDuplicateCourse = processedCourses.some(c => 
+            c.courseName === courseName && 
+            c.teacher === teacher && 
+            c.classroom === room
+          );
+          
+          if (!isDuplicateCourse) {
             processedCourses.push({
               id: courseId,
               courseName: courseName,
-              teacher: courseDetail.teacher,
-              classroom: courseDetail.room
+              teacher: teacher,
+              classroom: room
             });
           }
           
@@ -1147,11 +1141,12 @@
           };
         });
         
-        // 去重（基于teacher+room组合已经确保了唯一性，这里主要是确保没有完全重复的条目）
+        // 去重（基于courseName、teacher、classroom组合确保唯一性）
         const uniqueCourses = [];
         const seenCourseIdentifiers = new Set();
+
         processedCourses.forEach(course => {
-          // 创建课程唯一标识（组合courseName、teacher和classroom）
+          // 创建课程唯一标识（组合courseName、teacher、classroom）
           const courseIdentifier = `${course.courseName}_${course.teacher}_${course.classroom}`;
           if (!seenCourseIdentifiers.has(courseIdentifier)) {
             seenCourseIdentifiers.add(courseIdentifier);
@@ -1161,6 +1156,40 @@
         
         // 先按ID排序
         uniqueCourses.sort((a, b) => a.id - b.id);
+
+        // 重新分配ID，确保ID与最终列表中的索引一致
+        const idToIndexMap = new Map();
+        uniqueCourses.forEach((course, index) => {
+          idToIndexMap.set(course.id, index);
+          course.id = index; // 更新ID为索引值
+        });
+        
+        // 更新课程安排中的ID引用
+        updatedCourseScheduleArray.forEach((schedule, index) => {
+          // 检查是否在idToIndexMap中存在映射
+          if (idToIndexMap.has(schedule.id)) {
+            schedule.id = idToIndexMap.get(schedule.id);
+          } else {
+            // 如果没有直接映射，尝试通过courseName、teacher、room组合查找
+            const courseName = courseNameMap.get(schedule.id) || '';
+            const teacher = schedule.teacher || '';
+            const room = schedule.room || schedule.classroom || '';
+            const courseIdentifier = `${courseName}_${teacher}_${room}`;
+            
+            // 在processedCourses中查找匹配的课程
+            const matchingCourse = processedCourses.find(c => 
+              c.courseName === courseName && 
+              c.teacher === teacher && 
+              c.classroom === room
+            );
+            
+            if (matchingCourse && idToIndexMap.has(matchingCourse.id)) {
+              schedule.id = idToIndexMap.get(matchingCourse.id);
+            } else {
+              console.log(`警告: 课程安排 ${index} 的ID ${schedule.id} 未找到映射，课程名称: ${courseName}`);
+            }
+          }
+        });
         
         // 移除ID字段
         const finalCourses = uniqueCourses.map(({id, ...rest}) => rest);
