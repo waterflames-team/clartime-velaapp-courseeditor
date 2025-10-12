@@ -9,6 +9,13 @@
   <title>澄序课程表-配置生成器</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script type="text/javascript">
+      (function(c,l,a,r,i,t,y){
+          c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+          t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+          y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      })(window, document, "clarity", "script", "tovu1h6gve");
+  </script>
   <script>
     tailwind.config = {
       theme: {
@@ -370,10 +377,11 @@
                   class="bg-secondary hover:bg-secondary/90 text-white px-4 py-2 rounded-lg transition-all flex items-center">
                   <i class="fa fa-upload mr-2"></i>加载配置
                 </button>
-                
+
               </div>
               <label class="block text-sm font-medium text-gray-700 mb-1" for="name"></label>
-              <label class="block text-sm font-medium text-gray-700 mb-1" for="name">部分手机文件选择器无法选取 wakeup 文件，建议安装 mt 管理器并在自带的选择器左上角切换至 mt 管理器进行选择</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1" for="name">部分手机文件选择器无法选取 wakeup 文件，建议安装 mt
+                管理器并在自带的选择器左上角切换至 mt 管理器进行选择</label>
 
 
             </div>
@@ -953,11 +961,11 @@
       try {
         // 读取源文件内容
         const fileContent = fileContentInput;
-        
+
         // ========== 数据解析部分 - 重构版 ==========
         // 将文件内容按行分割
         const lines = fileContent.trim().split('\n');
-        
+
         // 解析每一行的JSON数据
         const jsonData = lines.map(line => {
           try {
@@ -967,19 +975,19 @@
             return null;
           }
         }).filter(item => item !== null);
-        
+
         // 初始化变量存储解析后的数据
         let basicInfo = {};          // 存储基本信息（来自2号元素）
         let coursesInfoArray = [];   // 存储课程名称信息（来自3号元素）
         let timeDataArray = [];      // 存储时间信息（来自1号元素）
         let courseScheduleArray = []; // 存储课程安排信息（来自4号元素）
-        
+
         try {
           // 检查数据长度是否足够
           if (jsonData.length < 5) {
             throw new Error('数据格式不正确，至少需要5个JSON对象');
           }
-          
+
           // ========== 提取各部分数据 ==========
           // 1. 时间数据数组来自1号元素（索引1）
           if (Array.isArray(jsonData[1])) {
@@ -988,7 +996,7 @@
           } else {
             throw new Error('1号元素不是有效的数组格式');
           }
-          
+
           // 2. 基本信息（tableName、courseStart、courseEnd）来自2号元素（索引2）
           if (typeof jsonData[2] === 'object' && jsonData[2] !== null) {
             basicInfo = jsonData[2];
@@ -996,7 +1004,7 @@
           } else {
             throw new Error('2号元素不是有效的对象格式');
           }
-          
+
           // 3. 课程名称信息（courseName）来自3号元素（索引3）
           if (Array.isArray(jsonData[3])) {
             coursesInfoArray = jsonData[3];
@@ -1004,7 +1012,7 @@
           } else {
             throw new Error('3号元素不是有效的数组格式');
           }
-          
+
           // 4. 课程安排数组来自4号元素（索引4）
           if (Array.isArray(jsonData[4])) {
             courseScheduleArray = jsonData[4];
@@ -1012,24 +1020,24 @@
           } else {
             throw new Error('4号元素不是有效的数组格式');
           }
-          
+
           // 添加调试信息
           console.log(`解析到的数据：`);
           console.log(`- 时间数据数组长度: ${timeDataArray.length}`);
           console.log(`- 基本信息: ${JSON.stringify(basicInfo)}`);
           console.log(`- 课程名称信息数组长度: ${coursesInfoArray.length}`);
           console.log(`- 课程安排数组长度: ${courseScheduleArray.length}`);
-          
+
         } catch (parseError) {
           console.error('解析文件失败:', parseError);
           return;
         }
-        
+
         // 提取基本信息
         const tableName = basicInfo.tableName || '';
         const startDate = basicInfo.startDate || '';
         const maxWeek = basicInfo.maxWeek || 0;
-        
+
         // ========== 课程数据处理部分 ==========
         // 创建课程信息映射 (id -> courseName)
         const courseNameMap = new Map();
@@ -1038,10 +1046,10 @@
             courseNameMap.set(course.id, course.courseName);
           }
         });
-        
+
         // 初始化更新后的课程安排数组
         let updatedCourseScheduleArray = [];
-        
+
         // 以"courseName"、"teacher"和"room"字段作为核心驱动要素，处理课程ID冲突
         // 创建一个映射，用于存储courseName+teacher+room组合到课程ID的映射
         const courseTeacherRoomToIdMap = new Map();
@@ -1049,34 +1057,34 @@
         const usedIds = new Set();
         // 存储ID映射关系，用于后续更新课程安排中的ID
         const idMapping = new Map();
-        
+
         // 首先收集所有已使用的ID
         coursesInfoArray.forEach(course => {
           if (course.id !== undefined) {
             usedIds.add(course.id);
           }
         });
-        
+
         // 处理课程详细信息，为每个courseName+teacher+room组合分配唯一ID
         const processedCourses = [];
-        
+
         // 首先处理课程安排数组，确保每个课程安排都有正确的ID映射
         updatedCourseScheduleArray = courseScheduleArray.map(schedule => {
           // 获取课程名称
           const courseName = courseNameMap.get(schedule.id) || '';
-          
+
           // 直接从课程安排中获取teacher和room信息
           const teacher = schedule.teacher || '';
           const room = schedule.room || schedule.classroom || '';
-          
+
           // 创建courseName+teacher+room组合的唯一标识
           const courseTeacherRoomKey = `${courseName}_${teacher}_${room}`;
-          
+
           let courseId = schedule.id;
-          
+
           // 检查原始ID是否有效（在课程信息数组中存在，包括ID为0的情况）
           const isValidOriginalId = coursesInfoArray.some(course => course.id === schedule.id);
-          
+
           if (isValidOriginalId) {
             // 如果原始ID有效，保留原始ID
             courseId = schedule.id;
@@ -1094,7 +1102,7 @@
                   break;
                 }
               }
-              
+
               // 如果存在ID冲突，分配一个新的ID
               if (isIdConflict) {
                 // 找到最小的未使用ID
@@ -1105,25 +1113,25 @@
                 courseId = newId;
                 usedIds.add(courseId);
               }
-              
+
               // 存储courseName+teacher+room组合到ID的映射
               courseTeacherRoomToIdMap.set(courseTeacherRoomKey, courseId);
             }
           }
-          
+
           // 存储ID映射关系（原始ID -> 新ID）
           if (schedule.id !== courseId) {
             idMapping.set(schedule.id, courseId);
           }
-          
+
           // 添加处理后的课程
           // 检查是否已存在完全相同的课程（courseName、teacher、classroom都相同）
-          const isDuplicateCourse = processedCourses.some(c => 
-            c.courseName === courseName && 
-            c.teacher === teacher && 
+          const isDuplicateCourse = processedCourses.some(c =>
+            c.courseName === courseName &&
+            c.teacher === teacher &&
             c.classroom === room
           );
-          
+
           if (!isDuplicateCourse) {
             processedCourses.push({
               id: courseId,
@@ -1132,7 +1140,7 @@
               classroom: room
             });
           }
-          
+
           // 返回更新后的课程安排，保留原始课程名称信息
           return {
             ...schedule,
@@ -1140,7 +1148,7 @@
             courseName: courseName
           };
         });
-        
+
         // 去重（基于courseName、teacher、classroom组合确保唯一性）
         const uniqueCourses = [];
         const seenCourseIdentifiers = new Set();
@@ -1153,7 +1161,7 @@
             uniqueCourses.push(course);
           }
         });
-        
+
         // 先按ID排序
         uniqueCourses.sort((a, b) => a.id - b.id);
 
@@ -1163,7 +1171,7 @@
           idToIndexMap.set(course.id, index);
           course.id = index; // 更新ID为索引值
         });
-        
+
         // 更新课程安排中的ID引用
         updatedCourseScheduleArray.forEach((schedule, index) => {
           // 检查是否在idToIndexMap中存在映射
@@ -1175,14 +1183,14 @@
             const teacher = schedule.teacher || '';
             const room = schedule.room || schedule.classroom || '';
             const courseIdentifier = `${courseName}_${teacher}_${room}`;
-            
+
             // 在processedCourses中查找匹配的课程
-            const matchingCourse = processedCourses.find(c => 
-              c.courseName === courseName && 
-              c.teacher === teacher && 
+            const matchingCourse = processedCourses.find(c =>
+              c.courseName === courseName &&
+              c.teacher === teacher &&
               c.classroom === room
             );
-            
+
             if (matchingCourse && idToIndexMap.has(matchingCourse.id)) {
               schedule.id = idToIndexMap.get(matchingCourse.id);
             } else {
@@ -1190,13 +1198,13 @@
             }
           }
         });
-        
+
         // 移除ID字段
-        const finalCourses = uniqueCourses.map(({id, ...rest}) => rest);
-        
+        const finalCourses = uniqueCourses.map(({ id, ...rest }) => rest);
+
         // 添加调试信息
         console.log(`更新后的课程安排数组长度: ${updatedCourseScheduleArray.length}`);
-        
+
         if (tableName && startDate && maxWeek) {
           // ========== 日期处理部分 ==========
           // 格式化日期为yyMMdd格式
@@ -1205,38 +1213,38 @@
           const month = parts[1].padStart(2, '0'); // 月份补零
           const day = parts[2].padStart(2, '0'); // 日期补零
           const courseStart = `${year}${month}${day}`;
-          
+
           // 计算日期加上指定周数后的日期
           const dateParts = startDate.split('-');
           const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
           date.setDate(date.getDate() + maxWeek * 7);
-          
+
           const endYear = date.getFullYear().toString().slice(2);
           const endMonth = (date.getMonth() + 1).toString().padStart(2, '0');
           const endDay = date.getDate().toString().padStart(2, '0');
-          
+
           const courseEnd = `${endYear}${endMonth}${endDay}`;
-          
+
           // ========== 时间表模板生成部分 ==========
           // 获取所有不同的day值，包括1-7天
           const uniqueDays = [...new Set(updatedCourseScheduleArray.map(item => item.day))].sort((a, b) => a - b);
-          
+
           let timetableTemplates = [];
           // 用于存储模板和其索引的映射
           const templateMap = new Map();
           // 存储每个day对应的模板索引
           const dayTemplateIndexMap = new Map();
-          
+
           // 为每个day生成timetableTemplate
           uniqueDays.forEach(day => {
             const dayTemplate = [{ type: 'start' }];
-            
+
             // 获取该day的所有课程安排，使用更新后的课程安排数组
             const dayCourses = updatedCourseScheduleArray.filter(item => item.day === day);
-            
+
             // 收集所有时间节点（包括course和interval）
             const timeNodes = [];
-            
+
             // 为每个课程安排生成时间节点
             dayCourses.forEach(course => {
               // 根据startNode获取对应的startTime
@@ -1244,12 +1252,12 @@
               if (timeItem && timeItem.startTime !== '00:00') {
                 const startTimeParts = timeItem.startTime.split(':');
                 // 检查是否已经存在相同时间的course节点
-                const existingCourseNode = timeNodes.find(node => 
-                  node.type === 'course' && 
-                  node.timeHour === startTimeParts[0] && 
+                const existingCourseNode = timeNodes.find(node =>
+                  node.type === 'course' &&
+                  node.timeHour === startTimeParts[0] &&
                   node.timeMinute === startTimeParts[1]
                 );
-                
+
                 // 总是添加course节点，即使时间相同
                 timeNodes.push({
                   type: 'course',
@@ -1257,19 +1265,19 @@
                   timeMinute: startTimeParts[1],
                   time: parseInt(startTimeParts[0]) * 60 + parseInt(startTimeParts[1]) // 转换为分钟数用于排序
                 });
-                
+
                 // 根据step确定结束时间点
                 const endNode = course.startNode + course.step - 1;
                 const endTimeItem = timeDataArray.find(item => item.node === endNode);
                 if (endTimeItem && endTimeItem.endTime !== '00:00') {
                   const endTimeParts = endTimeItem.endTime.split(':');
                   // 检查是否已经存在相同时间的interval节点
-                  const existingIntervalNode = timeNodes.find(node => 
-                    node.type === 'interval' && 
-                    node.timeHour === endTimeParts[0] && 
+                  const existingIntervalNode = timeNodes.find(node =>
+                    node.type === 'interval' &&
+                    node.timeHour === endTimeParts[0] &&
                     node.timeMinute === endTimeParts[1]
                   );
-                  
+
                   // 总是添加interval节点，即使时间相同
                   timeNodes.push({
                     type: 'interval',
@@ -1280,7 +1288,7 @@
                 }
               }
             });
-            
+
             // 按时间排序所有节点
             timeNodes.sort((a, b) => {
               if (a.time !== b.time) {
@@ -1296,7 +1304,7 @@
               // 如果类型相同，保持原有顺序
               return 0;
             });
-            
+
             // 当上一个"interval"节点与下一个"course"节点之间的时间差超过一小时时，就把该"interval"节点替换成"rest"节点
             for (let i = 0; i < timeNodes.length - 1; i++) {
               // 检查当前节点是否为interval类型，下一个节点是否为course类型
@@ -1310,14 +1318,14 @@
                 }
               }
             }
-            
+
             // 将排序后的节点添加到dayTemplate中
             timeNodes.forEach(node => {
               // 移除用于排序的time属性
               const { time, ...nodeWithoutTime } = node;
               dayTemplate.push(nodeWithoutTime);
             });
-            
+
             // 添加end节点
             if (dayTemplate.length > 1) {
               // 移除最后一个interval节点
@@ -1329,10 +1337,10 @@
                 timeMinute: lastInterval.timeMinute
               });
             }
-            
+
             // 将模板转换为字符串用于比较
             const templateStr = JSON.stringify(dayTemplate);
-            
+
             // 检查是否已存在相同的模板
             if (templateMap.has(templateStr)) {
               // 如果已存在，记录该day对应的模板索引
@@ -1345,7 +1353,7 @@
               dayTemplateIndexMap.set(day, newIndex);
             }
           });
-          
+
           // ========== 课程安排生成部分 ==========
           // 为一周中的每一天（1-7）生成courseSchedule条目
           let courseSchedule = [];
@@ -1353,24 +1361,24 @@
           for (let day = 1; day <= 7; day++) {
             // 使用更新后的课程安排数组，确保ID一致性
             const dayCourses = updatedCourseScheduleArray.filter(item => item.day === day);
-            
+
             // 判断当天是否有课程安排
             if (dayCourses.length > 0) {
               // 有课程安排的天数，正常处理
               // 先按照startNode对课程进行排序
               const sortedDayCourses = dayCourses.sort((a, b) => a.startNode - b.startNode);
-              
+
               // 创建courseList数组，保留同一天的所有课程
               const courseList = sortedDayCourses.map(course => {
                 // 直接使用已经正确映射的course.id
                 const courseId = course.id;
-                
+
                 return {
                   courseId: [courseId],
                   courseRepeatability: 1
                 };
               });
-              
+
               // 添加到courseSchedule，使用去重后的模板索引
               courseSchedule.push({
                 timetableId: [dayTemplateIndexMap.get(day)],
